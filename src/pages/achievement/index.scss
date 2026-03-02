@@ -1,0 +1,113 @@
+.achievement {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+  padding: 40px 30px;
+  
+  .header {
+    text-align: center;
+    margin-bottom: 40px;
+    
+    .title {
+      font-size: 56px;
+      color: #333;
+      font-weight: bold;
+      text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1);
+      display: block;
+    }
+  }
+  
+  .achievement-list {
+    .achievement-item {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 16px;
+      padding: 30px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+      
+      &.unlocked {
+        border: 3px solid #FFD700;
+      }
+      
+      &.locked {
+        border: 3px solid #ccc;
+        opacity: 0.7;
+      }
+      
+      .achievement-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+        
+        .achievement-title {
+          font-size: 36px;
+          font-weight: bold;
+          color: #333;
+          flex: 1;
+        }
+        
+        .achievement-badge {
+          font-size: 40px;
+          margin-left: 16px;
+        }
+      }
+      
+      .achievement-description {
+        display: block;
+        font-size: 28px;
+        color: #666;
+        margin-bottom: 20px;
+        line-height: 1.6;
+      }
+      
+      .achievement-condition {
+        display: flex;
+        margin-bottom: 12px;
+        
+        .condition-label {
+          font-size: 28px;
+          color: #666;
+          font-weight: 500;
+        }
+        
+        .condition-value {
+          font-size: 28px;
+          color: #333;
+          margin-left: 8px;
+        }
+      }
+      
+      .achievement-reward {
+        display: flex;
+        padding-top: 16px;
+        border-top: 1px solid #eee;
+        
+        .reward-label {
+          font-size: 28px;
+          color: #666;
+          font-weight: 500;
+        }
+        
+        .reward-value {
+          font-size: 28px;
+          color: #FF9800;
+          margin-left: 8px;
+          font-weight: bold;
+        }
+      }
+    }
+  }
+  
+  .back-button {
+    margin-top: 40px;
+    
+    .back-btn {
+      background: rgba(255, 255, 255, 0.9);
+      color: #a8edea;
+      font-size: 28px;
+      padding: 24px;
+      border-radius: 12px;
+      border: 2px solid #a8edea;
+    }
+  }
+}

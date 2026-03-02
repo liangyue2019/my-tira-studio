@@ -1,0 +1,111 @@
+.page-index {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 40px 30px;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 40px;
+  
+  .title {
+    font-size: 56px;
+    color: #fff;
+    font-weight: bold;
+    text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
+    display: block;
+  }
+}
+
+.resource-panel {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  padding: 30px;
+  margin-bottom: 30px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  
+  .resource-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 0;
+    border-bottom: 1px solid #eee;
+    
+    &:last-child {
+      border-bottom: none;
+    }
+    
+    .resource-icon {
+      font-size: 40px;
+      margin-right: 20px;
+    }
+    
+    .resource-value {
+      font-size: 36px;
+      font-weight: bold;
+      color: #333;
+    }
+  }
+}
+
+.stats-panel {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  padding: 30px;
+  margin-bottom: 30px;
+  display: flex;
+  justify-content: space-around;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  
+  .stat-item {
+    text-align: center;
+    
+    .stat-label {
+      display: block;
+      font-size: 24px;
+      color: #666;
+      margin-bottom: 10px;
+    }
+    
+    .stat-value {
+      display: block;
+      font-size: 40px;
+      font-weight: bold;
+      color: #667eea;
+    }
+  }
+}
+
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  
+  .action-btn {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 16px;
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s;
+    cursor: pointer;
+    
+    &:active {
+      transform: scale(0.95);
+    }
+    
+    .action-icon {
+      font-size: 56px;
+      margin-bottom: 16px;
+    }
+    
+    .action-text {
+      font-size: 28px;
+      color: #333;
+      font-weight: 500;
+    }
+  }
+}
