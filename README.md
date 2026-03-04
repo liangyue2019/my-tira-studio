@@ -343,7 +343,7 @@ MIT License
 
 ## 👨‍💻 开发者
 
-感谢白夜 tira 提供的 AI-agent 系统创意！
+关注白夜tira谢谢喵！
 
 ---
 

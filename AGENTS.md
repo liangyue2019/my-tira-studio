@@ -260,8 +260,16 @@ pnpm build:weapp
 4. **概率验证**: 抽卡概率需要前端验证和后端校验（上线时）
 5. **状态同步**: 多个 store 之间的状态变更需要保持一致性
 
-## 最近修复（2026-03-02）
+## 最近修复（2026-03-04）
 
+### 2026-03-04 修复
+- ✅ 修复员工分配到工作的问题
+  - 修改 `assignEmployeeToProject` 方法，确保同时更新员工的 `assignedProjectId` 和 `isWorking` 状态
+  - 修改 `removeEmployeeFromProject` 方法，确保员工从项目移除时正确重置状态
+  - 修改 `completeProject` 方法，确保项目完成时重置所有分配员工的状态
+  - 添加 `useEmployeeStore` 导入到 project.ts 文件
+
+### 2026-03-02 修复
 已修复的类型错误：
 - ✅ 移除未使用的 `Resources` 导入
 - ✅ 添加缺失的 store 属性（employees, projects, achievements, storyChapters）
