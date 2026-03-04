@@ -3,6 +3,7 @@ import type { Project } from '../types'
 import { PROJECT_TEMPLATES, PROJECT_DIFFICULTY } from '../constants/projects'
 import { randomInt, generateUUID } from '../utils/random'
 import { useResourceStore } from './resource'
+import { useEmployeeStore } from './employee'
 
 interface ProjectState {
   projects: Project[]
@@ -50,6 +51,13 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
           : p
       )
     }))
+
+    // 更新员工的 assignedProjectId 和 isWorking 状态
+    const employeeStore = useEmployeeStore.getState()
+    employeeStore.updateEmployee(employeeId, {
+      assignedProjectId: projectId,
+      isWorking: true
+    })
   },
 
   removeEmployeeFromProject: (projectId: string, employeeId: string) => {
@@ -63,19 +71,37 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
           : p
       )
     }))
+
+    // 更新员工的 assignedProjectId 和 isWorking 状态
+    const employeeStore = useEmployeeStore.getState()
+    employeeStore.updateEmployee(employeeId, {
+      assignedProjectId: undefined,
+      isWorking: false,
+      workProgress: 0
+    })
   },
 
   completeProject: (id: string) => {
     const { projects } = get()
     const project = projects.find((p) => p.id === id)
-    
+
     if (project) {
       const { addGold, addReputation, addExp } = useResourceStore.getState()
-      
+
       addGold(project.reward.gold)
       addReputation(project.reward.reputation)
       addExp(project.reward.exp)
-      
+
+      // 重置所有分配员工的状态
+      const employeeStore = useEmployeeStore.getState()
+      project.assignedEmployees.forEach(employeeId => {
+        employeeStore.updateEmployee(employeeId, {
+          assignedProjectId: undefined,
+          isWorking: false,
+          workProgress: 0
+        })
+      })
+
       get().removeProject(id)
     }
   },
@@ -84,19 +110,19 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const template = PROJECT_TEMPLATES[randomInt(0, PROJECT_TEMPLATES.length - 1)]
     const difficulty = randomInt(1, 5)
     const multiplier = PROJECT_DIFFICULTY[difficulty as keyof typeof PROJECT_DIFFICULTY].multiplier
-    
+
     const requirements = {
       coding: Math.floor(template.baseRequirements.coding * multiplier),
       design: Math.floor(template.baseRequirements.design * multiplier),
       communication: Math.floor(template.baseRequirements.communication * multiplier)
     }
-    
+
     const reward = {
       gold: Math.floor(template.baseReward.gold * multiplier),
       reputation: Math.floor(template.baseReward.reputation * multiplier),
       exp: Math.floor(template.baseReward.exp * multiplier)
     }
-    
+
     return {
       id: generateUUID(),
       name: template.name,
@@ -115,35 +141,35 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   refreshAvailableProjects: () => {
     const count = randomInt(2, 4)
     const newProjects: Project[] = []
-    
+
     for (let i = 0; i < count; i++) {
       newProjects.push(get().generateAvailableProject())
     }
-    
+
     set({ availableProjects: newProjects })
   },
 
   generateInitialProjects: () => {
     // 生成 2 个简单的初始项目（难度 1，持续时间短）
     const initialProjects: Project[] = []
-    
+
     for (let i = 0; i < 2; i++) {
       const template = PROJECT_TEMPLATES[i % PROJECT_TEMPLATES.length]
       const difficulty = 1 // 简单难度
       const multiplier = PROJECT_DIFFICULTY[difficulty as keyof typeof PROJECT_DIFFICULTY].multiplier
-      
+
       const requirements = {
         coding: Math.floor(template.baseRequirements.coding * multiplier * 0.5), // 降低要求
         design: Math.floor(template.baseRequirements.design * multiplier * 0.5),
         communication: Math.floor(template.baseRequirements.communication * multiplier * 0.5)
       }
-      
+
       const reward = {
         gold: Math.floor(template.baseReward.gold * multiplier),
         reputation: Math.floor(template.baseReward.reputation * multiplier),
         exp: Math.floor(template.baseReward.exp * multiplier)
       }
-      
+
       initialProjects.push({
         id: generateUUID(),
         name: template.name,
@@ -158,7 +184,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         progress: 0
       })
     }
-    
+
     set({ availableProjects: initialProjects })
   }
 }))

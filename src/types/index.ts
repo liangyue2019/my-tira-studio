@@ -62,9 +62,36 @@ export interface StoryChapter {
     reputation?: number
     gold?: number
     employees?: number
+    projects?: number
   }
   isUnlocked: boolean
   isRead: boolean
+}
+
+export interface DialogOption {
+  id: string
+  text: string
+  reward?: Partial<Resources>
+  nextDialogId?: string
+  action?: string
+}
+
+export interface DialogTrigger {
+  type: 'reputation' | 'gold' | 'employees' | 'projects' | 'level' | 'custom'
+  value: number
+  customCheck?: () => boolean
+}
+
+export interface Dialog {
+  id: string
+  title: string
+  speaker?: string
+  avatar?: string
+  text: string
+  options: DialogOption[]
+  trigger: DialogTrigger
+  isTriggered: boolean
+  triggerTime?: number
 }
 
 export interface Achievement {
@@ -90,20 +117,13 @@ export interface GameState {
   projects: Project[]
   achievements: Achievement[]
   storyChapters: StoryChapter[]
+  dialogs: Dialog[]
+  currentDialogId: string | null
   lastSaveTime: number
   totalPlayTime: number
   offlineStartTime: number
   isFirstLaunch: boolean
   showIntroStory: boolean
-  initializeGame: () => void
-  saveGame: () => void
-  loadGame: () => void
-  updateStoryChapter: (id: string, updates: Partial<StoryChapter>) => void
-  unlockAchievement: (id: string) => void
-  checkAchievements: () => void
-  setOfflineStartTime: (time: number) => void
-  setShowIntroStory: (show: boolean) => void
-  markFirstLaunchCompleted: () => void
 }
 
 export interface GachaResult {

@@ -1,6 +1,6 @@
 import React from 'react'
 import { View, Text, Button } from '@tarojs/components'
-import Taro from '@tarojs/taro'
+import { showToast, showActionSheet, showModal, navigateTo } from '@tarojs/taro'
 import { useEmployeeStore } from '../../stores/employee'
 import { useProjectStore } from '../../stores/project'
 import { RARITY_NAMES, COLOR_PREFIXES } from '../../constants/config'
@@ -25,7 +25,7 @@ function Employee() {
 
   const handleAssignProject = (employee: any) => {
     if (employee.isWorking) {
-      Taro.showToast({
+      showToast({
         title: '员工正在工作中',
         icon: 'none'
       })
@@ -35,14 +35,14 @@ function Employee() {
     const availableProjects = projects.filter(p => !p.assignedEmployees.includes(employee.id))
     
     if (availableProjects.length === 0) {
-      Taro.showToast({
+      showToast({
         title: '没有可用项目',
         icon: 'none'
       })
       return
     }
 
-    Taro.showActionSheet({
+    showActionSheet({
       itemList: availableProjects.map(p => p.name)
     }).then((res) => {
       const project = availableProjects[res.tapIndex]
@@ -50,7 +50,7 @@ function Employee() {
         isWorking: true,
         assignedProjectId: project.id
       })
-      Taro.showToast({
+      showToast({
         title: '已分配工作',
         icon: 'success'
       })
@@ -59,20 +59,20 @@ function Employee() {
 
   const handleDismiss = (employee: any) => {
     if (employee.isWorking) {
-      Taro.showToast({
+      showToast({
         title: '工作中的员工无法解雇',
         icon: 'none'
       })
       return
     }
 
-    Taro.showModal({
+    showModal({
       title: '确认解雇',
       content: `确定要解雇 ${employee.name} 吗？`
     }).then((res) => {
       if (res.confirm) {
         useEmployeeStore.getState().removeEmployee(employee.id)
-        Taro.showToast({
+        showToast({
           title: '已解雇',
           icon: 'success'
         })
@@ -81,85 +81,85 @@ function Employee() {
   }
 
   return (
-    <View className="employee">
-      <View className="header">
-        <Text className="title">员工管理</Text>
+    <View className='employee'>
+      <View className='header'>
+        <Text className='title'>员工管理</Text>
       </View>
 
-      <View className="stats">
-        <Text className="stat-text">员工总数：{employees.length}</Text>
-        <Text className="stat-text">
+      <View className='stats'>
+        <Text className='stat-text'>员工总数：{employees.length}</Text>
+        <Text className='stat-text'>
           工作中：{employees.filter(e => e.isWorking).length}
         </Text>
-        <Text className="stat-text">
+        <Text className='stat-text'>
           空闲：{employees.filter(e => !e.isWorking).length}
         </Text>
       </View>
 
-      <View className="employee-list">
+      <View className='employee-list'>
         {employees.length === 0 ? (
-          <View className="empty-state">
-            <Text className="empty-text">暂无员工，快去招募吧！</Text>
+          <View className='empty-state'>
+            <Text className='empty-text'>暂无员工，快去招募吧！</Text>
           </View>
         ) : (
           employees.map((employee) => (
             <View 
               key={employee.id} 
-              className="employee-card"
+              className='employee-card'
               style={{ borderColor: getColorStyle(employee.color) }}
             >
-              <View className="card-header">
+              <View className='card-header'>
                 <Text 
-                  className="employee-name"
+                  className='employee-name'
                   style={{ color: getColorStyle(employee.color) }}
                 >
                   {employee.name}
                 </Text>
                 <Text 
-                  className="employee-rarity"
+                  className='employee-rarity'
                   style={{ color: getColorStyle(employee.color) }}
                 >
                   {RARITY_NAMES[employee.rarity as keyof typeof RARITY_NAMES]}
                 </Text>
               </View>
               
-              <View className="employee-info">
-                <Text className="info-item">等级：Lv.{employee.level}</Text>
-                <Text className="info-item">颜色：{employee.color}夜</Text>
-                <Text className="info-item">
+              <View className='employee-info'>
+                <Text className='info-item'>等级：Lv.{employee.level}</Text>
+                <Text className='info-item'>颜色：{employee.color}夜</Text>
+                <Text className='info-item'>
                   状态：{employee.isWorking ? '🔒 工作中' : '✅ 空闲'}
                 </Text>
               </View>
 
-              <View className="abilities">
-                <View className="ability-row">
-                  <Text className="ability-label">编程:</Text>
-                  <Text className="ability-value">{employee.abilities.coding}</Text>
+              <View className='abilities'>
+                <View className='ability-row'>
+                  <Text className='ability-label'>编程:</Text>
+                  <Text className='ability-value'>{employee.abilities.coding}</Text>
                 </View>
-                <View className="ability-row">
-                  <Text className="ability-label">设计:</Text>
-                  <Text className="ability-value">{employee.abilities.design}</Text>
+                <View className='ability-row'>
+                  <Text className='ability-label'>设计:</Text>
+                  <Text className='ability-value'>{employee.abilities.design}</Text>
                 </View>
-                <View className="ability-row">
-                  <Text className="ability-label">沟通:</Text>
-                  <Text className="ability-value">{employee.abilities.communication}</Text>
+                <View className='ability-row'>
+                  <Text className='ability-label'>沟通:</Text>
+                  <Text className='ability-value'>{employee.abilities.communication}</Text>
                 </View>
-                <View className="ability-row">
-                  <Text className="ability-label">效率:</Text>
-                  <Text className="ability-value">{employee.abilities.efficiency}</Text>
+                <View className='ability-row'>
+                  <Text className='ability-label'>效率:</Text>
+                  <Text className='ability-value'>{employee.abilities.efficiency}</Text>
                 </View>
               </View>
 
-              <View className="card-actions">
+              <View className='card-actions'>
                 <Button 
-                  className="action-btn"
+                  className='action-btn'
                   onClick={() => handleAssignProject(employee)}
                   disabled={employee.isWorking}
                 >
                   {employee.isWorking ? '工作中' : '分配工作'}
                 </Button>
                 <Button 
-                  className="action-btn danger"
+                  className='action-btn danger'
                   onClick={() => handleDismiss(employee)}
                   disabled={employee.isWorking}
                 >
@@ -171,10 +171,10 @@ function Employee() {
         )}
       </View>
 
-      <View className="back-button">
+      <View className='back-button'>
         <Button 
-          className="back-btn"
-          onClick={() => Taro.navigateTo({ url: '/pages/index/index' })}
+          className='back-btn'
+          onClick={() => navigateTo({ url: '/pages/index/index' })}
         >
           返回工作室
         </Button>

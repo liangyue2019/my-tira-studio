@@ -3,36 +3,36 @@ export const PROJECT_TEMPLATES = [
     name: '企业官网',
     client: '某创业公司',
     baseRequirements: { coding: 20, design: 15, communication: 10 },
-    baseDuration: 3600,
-    baseReward: { gold: 500, reputation: 10, exp: 20 }
+    baseDuration: 60,
+    baseReward: { gold: 50, reputation: 2, exp: 5 }
   },
   {
     name: '电商平台',
     client: '某零售企业',
     baseRequirements: { coding: 50, design: 30, communication: 20 },
-    baseDuration: 7200,
-    baseReward: { gold: 1200, reputation: 25, exp: 50 }
+    baseDuration: 90,
+    baseReward: { gold: 120, reputation: 5, exp: 12 }
   },
   {
     name: '移动应用',
     client: '某科技公司',
     baseRequirements: { coding: 80, design: 40, communication: 30 },
-    baseDuration: 14400,
-    baseReward: { gold: 2500, reputation: 50, exp: 100 }
+    baseDuration: 120,
+    baseReward: { gold: 250, reputation: 10, exp: 25 }
   },
   {
     name: 'AI 系统',
     client: '某研究机构',
     baseRequirements: { coding: 150, design: 60, communication: 50 },
-    baseDuration: 28800,
-    baseReward: { gold: 5000, reputation: 100, exp: 200 }
+    baseDuration: 150,
+    baseReward: { gold: 500, reputation: 20, exp: 50 }
   },
   {
     name: '云平台架构',
     client: '某互联网巨头',
     baseRequirements: { coding: 300, design: 100, communication: 100 },
-    baseDuration: 57600,
-    baseReward: { gold: 10000, reputation: 200, exp: 500 }
+    baseDuration: 180,
+    baseReward: { gold: 1000, reputation: 40, exp: 125 }
   }
 ]
 

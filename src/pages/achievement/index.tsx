@@ -1,6 +1,6 @@
 import React from 'react'
 import { View, Text, Button } from '@tarojs/components'
-import Taro from '@tarojs/taro'
+import { navigateTo } from '@tarojs/taro'
 import { useGameStore } from '../../stores/game'
 import { ACHIEVEMENTS } from '../../constants/achievements'
 import { formatNumber } from '../../utils/format'
@@ -29,43 +29,43 @@ function Achievement() {
   }
 
   return (
-    <View className="achievement">
-      <View className="header">
-        <Text className="title">成就系统</Text>
+    <View className='achievement'>
+      <View className='header'>
+        <Text className='title'>成就系统</Text>
       </View>
 
-      <View className="achievement-list">
+      <View className='achievement-list'>
         {achievements.map((achievement) => (
           <View
             key={achievement.id}
             className={`achievement-item ${achievement.isUnlocked ? 'unlocked' : 'locked'}`}
           >
-            <View className="achievement-header">
-              <Text className="achievement-title">{achievement.title}</Text>
-              <Text className="achievement-badge">
+            <View className='achievement-header'>
+              <Text className='achievement-title'>{achievement.title}</Text>
+              <Text className='achievement-badge'>
                 {achievement.isUnlocked ? '✅' : '🔒'}
               </Text>
             </View>
             
-            <Text className="achievement-description">{achievement.description}</Text>
+            <Text className='achievement-description'>{achievement.description}</Text>
             
-            <View className="achievement-condition">
-              <Text className="condition-label">条件：</Text>
-              <Text className="condition-value">{getConditionText(achievement)}</Text>
+            <View className='achievement-condition'>
+              <Text className='condition-label'>条件：</Text>
+              <Text className='condition-value'>{getConditionText(achievement)}</Text>
             </View>
             
-            <View className="achievement-reward">
-              <Text className="reward-label">奖励：</Text>
-              <Text className="reward-value">{getRewardText(achievement)}</Text>
+            <View className='achievement-reward'>
+              <Text className='reward-label'>奖励：</Text>
+              <Text className='reward-value'>{getRewardText(achievement)}</Text>
             </View>
           </View>
         ))}
       </View>
 
-      <View className="back-button">
+      <View className='back-button'>
         <Button
-          className="back-btn"
-          onClick={() => Taro.navigateTo({ url: '/pages/index/index' })}
+          className='back-btn'
+          onClick={() => navigateTo({ url: '/pages/index/index' })}
         >
           返回工作室
         </Button>

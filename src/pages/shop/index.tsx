@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { View, Text, Button } from '@tarojs/components'
-import Taro from '@tarojs/taro'
+import { showToast, navigateTo } from '@tarojs/taro'
 import { useResourceStore } from '../../stores/resource'
 import { useEmployeeStore } from '../../stores/employee'
 import { useGameStore } from '../../stores/game'
@@ -27,7 +27,7 @@ function Shop() {
 
     const cost = GAME_CONFIG.gachaCost
     if (!spendPower(cost)) {
-      Taro.showToast({
+      showToast({
         title: '电力代币不足',
         icon: 'none'
       })
@@ -61,60 +61,60 @@ function Shop() {
   }
 
   return (
-    <View className="shop">
-      <View className="header">
-        <Text className="title">AI 招募系统</Text>
+    <View className='shop'>
+      <View className='header'>
+        <Text className='title'>AI 招募系统</Text>
       </View>
 
-      <View className="power-display">
-        <Text className="power-icon">⚡</Text>
-        <Text className="power-value">{formatNumber(resources.power)}</Text>
-        <Text className="power-label">电力代币</Text>
+      <View className='power-display'>
+        <Text className='power-icon'>⚡</Text>
+        <Text className='power-value'>{formatNumber(resources.power)}</Text>
+        <Text className='power-label'>电力代币</Text>
       </View>
 
-      <View className="gacha-area">
+      <View className='gacha-area'>
         {isAnimating ? (
-          <View className="gacha-animation">
-            <Text className="animate-text">正在招募...</Text>
+          <View className='gacha-animation'>
+            <Text className='animate-text'>正在招募...</Text>
           </View>
         ) : gachaResult ? (
-          <View className="gacha-result" style={{ borderColor: getColorStyle(gachaResult.color) }}>
+          <View className='gacha-result' style={{ borderColor: getColorStyle(gachaResult.color) }}>
             <Text 
-              className="result-rarity"
+              className='result-rarity'
               style={{ color: getColorStyle(gachaResult.color) }}
             >
               {RARITY_NAMES[gachaResult.rarity as keyof typeof RARITY_NAMES]}
             </Text>
             <Text 
-              className="result-name"
+              className='result-name'
               style={{ color: getColorStyle(gachaResult.color) }}
             >
               {gachaResult.name}
             </Text>
-            <View className="result-abilities">
-              <Text className="ability-item">编程：{gachaResult.abilities.coding}</Text>
-              <Text className="ability-item">设计：{gachaResult.abilities.design}</Text>
-              <Text className="ability-item">沟通：{gachaResult.abilities.communication}</Text>
-              <Text className="ability-item">效率：{gachaResult.abilities.efficiency}</Text>
+            <View className='result-abilities'>
+              <Text className='ability-item'>编程：{gachaResult.abilities.coding}</Text>
+              <Text className='ability-item'>设计：{gachaResult.abilities.design}</Text>
+              <Text className='ability-item'>沟通：{gachaResult.abilities.communication}</Text>
+              <Text className='ability-item'>效率：{gachaResult.abilities.efficiency}</Text>
             </View>
           </View>
         ) : (
-          <View className="gacha-placeholder">
-            <Text className="placeholder-text">点击招募按钮开始</Text>
+          <View className='gacha-placeholder'>
+            <Text className='placeholder-text'>点击招募按钮开始</Text>
           </View>
         )}
       </View>
 
-      <View className="gacha-info">
-        <Text className="info-title">招募说明</Text>
-        <Text className="info-item">消耗：{GAME_CONFIG.gachaCost} 电力代币/次</Text>
-        <Text className="info-item">品质：1-5 星</Text>
-        <Text className="info-item">颜色：白、蓝、红、紫、金</Text>
+      <View className='gacha-info'>
+        <Text className='info-title'>招募说明</Text>
+        <Text className='info-item'>消耗：{GAME_CONFIG.gachaCost} 电力代币/次</Text>
+        <Text className='info-item'>品质：1-5 星</Text>
+        <Text className='info-item'>颜色：白、蓝、红、紫、金</Text>
       </View>
 
-      <View className="gacha-button">
+      <View className='gacha-button'>
         <Button 
-          className="gacha-btn"
+          className='gacha-btn'
           onClick={handleGacha}
           disabled={isAnimating || resources.power < GAME_CONFIG.gachaCost}
         >
@@ -122,10 +122,10 @@ function Shop() {
         </Button>
       </View>
 
-      <View className="back-button">
+      <View className='back-button'>
         <Button 
-          className="back-btn"
-          onClick={() => Taro.navigateTo({ url: '/pages/index/index' })}
+          className='back-btn'
+          onClick={() => navigateTo({ url: '/pages/index/index' })}
         >
           返回工作室
         </Button>
