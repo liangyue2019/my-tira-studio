@@ -5,6 +5,7 @@ export const DIALOGS: Dialog[] = [
     id: 'intro',
     title: '欢迎来到 AI 工作室',
     speaker: '白夜 tira',
+    avatar: '/assets/avatars/tira.png',
     text: '你和我一起创立了这家 IT 工作室！我开发的 AI-agent 系统可以招募智能体员工！\n\n你已经获得了初始员工和初始项目，快去让他们开始工作吧！',
     options: [
       {
@@ -69,6 +70,7 @@ export const DIALOGS: Dialog[] = [
     id: 'gold_10000',
     title: '财富积累',
     speaker: '白夜 tira',
+    avatar: '/assets/avatars/tira.png',
     text: '哇！我们已经有 10000 金币了！工作室的发展越来越好！',
     options: [
       {
@@ -111,6 +113,7 @@ export const DIALOGS: Dialog[] = [
     id: 'employees_5',
     title: '团队壮大',
     speaker: '白夜 tira',
+    avatar: '/assets/avatars/tira.png',
     text: '太棒了！我们现在有 5 个员工了！团队越来越强大！',
     options: [
       {

@@ -33,10 +33,17 @@ function DialogModal() {
     <View className='dialog-modal-overlay' onClick={handleClose}>
       <View className='dialog-modal' onClick={(e) => e.stopPropagation()}>
         <View className='dialog-header'>
-          {dialog.speaker && (
-            <Text className='dialog-speaker'>{dialog.speaker}</Text>
+          {dialog.avatar && (
+            <View className='dialog-avatar'>
+              <img src={dialog.avatar} alt={dialog.speaker} />
+            </View>
           )}
-          <Text className='dialog-title'>{dialog.title}</Text>
+          <View className='dialog-header-text'>
+            {dialog.speaker && (
+              <Text className='dialog-speaker'>{dialog.speaker}</Text>
+            )}
+            <Text className='dialog-title'>{dialog.title}</Text>
+          </View>
         </View>
         <View className='dialog-content'>
           <Text className='dialog-text'>{dialog.text}</Text>
