@@ -1,0 +1,123 @@
+.event-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 30px;
+}
+
+.event-modal {
+  background: #fff;
+  border-radius: 24px;
+  width: 100%;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+
+  .event-header {
+    padding: 30px;
+    text-align: center;
+    border-bottom: 3px solid #999;
+
+    .event-rarity {
+      font-size: 22px;
+      font-weight: 500;
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    .event-title {
+      font-size: 36px;
+      color: #333;
+      font-weight: bold;
+      display: block;
+    }
+  }
+
+  .event-content {
+    padding: 24px 30px;
+
+    .event-description {
+      font-size: 28px;
+      color: #555;
+      line-height: 1.6;
+    }
+  }
+
+  .event-options {
+    padding: 0 20px 20px;
+
+    .event-option {
+      padding: 20px 24px;
+      margin-bottom: 12px;
+      background: #f8f9fa;
+      border-radius: 16px;
+      cursor: pointer;
+      transition: background 0.2s;
+
+      &:active {
+        background: #e8e9ea;
+      }
+
+      &.locked {
+        opacity: 0.5;
+        cursor: not-allowed;
+
+        &:active {
+          background: #f8f9fa;
+        }
+      }
+
+      .option-text {
+        font-size: 28px;
+        color: #333;
+        font-weight: 500;
+        display: block;
+        margin-bottom: 8px;
+      }
+
+      .option-locked {
+        font-size: 22px;
+        color: #ff6b6b;
+        display: block;
+        margin-bottom: 8px;
+      }
+
+      .option-effects {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+
+        .option-rewards,
+        .option-penalties {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+
+        .effect-item {
+          font-size: 22px;
+          padding: 4px 12px;
+          border-radius: 6px;
+
+          &.gain {
+            color: #4caf50;
+            background: rgba(76, 175, 80, 0.1);
+          }
+
+          &.loss {
+            color: #ff6b6b;
+            background: rgba(255, 107, 107, 0.1);
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,10 +1,10 @@
 import React, { useState } from 'react'
 import { View, Text, Button } from '@tarojs/components'
-import { showToast, navigateTo } from '@tarojs/taro'
+import { showToast } from '@tarojs/taro'
 import { useResourceStore } from '../../stores/resource'
 import { useEmployeeStore } from '../../stores/employee'
-import { useGameStore } from '../../stores/game'
-import { GAME_CONFIG, RARITY_NAMES, COLOR_PREFIXES } from '../../constants/config'
+import { GAME_CONFIG } from '../../constants/config'
+import { RARITY_NAMES } from '../../types'
 import { formatNumber } from '../../utils/format'
 import './index.scss'
 
@@ -18,19 +18,15 @@ function Shop() {
   const [isAnimating, setIsAnimating] = useState(false)
 
   const resources = useResourceStore((state) => state.resources)
-  const spendPower = useResourceStore((state) => state.spendPower)
+  const spendGold = useResourceStore((state) => state.spendGold)
   const gacha = useEmployeeStore((state) => state.gacha)
-  const checkAchievements = useGameStore((state) => state.checkAchievements)
 
   const handleGacha = () => {
     if (isAnimating) return
 
     const cost = GAME_CONFIG.gachaCost
-    if (!spendPower(cost)) {
-      showToast({
-        title: '电力代币不足',
-        icon: 'none'
-      })
+    if (!spendGold(cost)) {
+      showToast({ title: '金币不足', icon: 'none' })
       return
     }
 
@@ -44,7 +40,6 @@ function Shop() {
         rarity: employee.rarity,
         abilities: employee.abilities
       })
-      checkAchievements()
       setIsAnimating(false)
     }, 1500)
   }
@@ -67,9 +62,9 @@ function Shop() {
       </View>
 
       <View className='power-display'>
-        <Text className='power-icon'>⚡</Text>
-        <Text className='power-value'>{formatNumber(resources.power)}</Text>
-        <Text className='power-label'>电力代币</Text>
+        <Text className='power-icon'>💰</Text>
+        <Text className='power-value'>{formatNumber(resources.gold)}</Text>
+        <Text className='power-label'>金币</Text>
       </View>
 
       <View className='gacha-area'>
@@ -79,13 +74,13 @@ function Shop() {
           </View>
         ) : gachaResult ? (
           <View className='gacha-result' style={{ borderColor: getColorStyle(gachaResult.color) }}>
-            <Text 
+            <Text
               className='result-rarity'
               style={{ color: getColorStyle(gachaResult.color) }}
             >
-              {RARITY_NAMES[gachaResult.rarity as keyof typeof RARITY_NAMES]}
+              {RARITY_NAMES[gachaResult.rarity]}
             </Text>
-            <Text 
+            <Text
               className='result-name'
               style={{ color: getColorStyle(gachaResult.color) }}
             >
@@ -101,33 +96,25 @@ function Shop() {
         ) : (
           <View className='gacha-placeholder'>
             <Text className='placeholder-text'>点击招募按钮开始</Text>
+            <Text className='placeholder-hint'>或在主页选择"招募员工"行动</Text>
           </View>
         )}
       </View>
 
       <View className='gacha-info'>
         <Text className='info-title'>招募说明</Text>
-        <Text className='info-item'>消耗：{GAME_CONFIG.gachaCost} 电力代币/次</Text>
+        <Text className='info-item'>消耗：{GAME_CONFIG.gachaCost} 金币/次</Text>
         <Text className='info-item'>品质：1-5 星</Text>
         <Text className='info-item'>颜色：白、蓝、红、紫、金</Text>
       </View>
 
       <View className='gacha-button'>
-        <Button 
+        <Button
           className='gacha-btn'
           onClick={handleGacha}
-          disabled={isAnimating || resources.power < GAME_CONFIG.gachaCost}
+          disabled={isAnimating || resources.gold < GAME_CONFIG.gachaCost}
         >
-          {isAnimating ? '招募中...' : `消耗 ${GAME_CONFIG.gachaCost} 电力招募`}
-        </Button>
-      </View>
-
-      <View className='back-button'>
-        <Button 
-          className='back-btn'
-          onClick={() => navigateTo({ url: '/pages/index/index' })}
-        >
-          返回工作室
+          {isAnimating ? '招募中...' : `消耗 ${GAME_CONFIG.gachaCost} 金币招募`}
         </Button>
       </View>
     </View>

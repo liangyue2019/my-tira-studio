@@ -4,7 +4,6 @@ export default defineAppConfig({
     'pages/employee/index',
     'pages/project/index',
     'pages/shop/index',
-    'pages/achievement/index',
     'pages/story/index'
   ],
   window: {
@@ -34,10 +33,6 @@ export default defineAppConfig({
       {
         pagePath: 'pages/shop/index',
         text: '商店'
-      },
-      {
-        pagePath: 'pages/achievement/index',
-        text: '成就'
       }
     ]
   }

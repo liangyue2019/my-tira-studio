@@ -1,0 +1,153 @@
+.settlement-view {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 60px 30px;
+  display: flex;
+  flex-direction: column;
+}
+
+.settlement-header {
+  text-align: center;
+  margin-bottom: 40px;
+
+  .settlement-icon {
+    font-size: 80px;
+    display: block;
+    margin-bottom: 16px;
+  }
+
+  .settlement-title {
+    font-size: 48px;
+    color: #fff;
+    font-weight: bold;
+  }
+}
+
+.settlement-body {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 24px;
+  padding: 30px;
+  margin-bottom: 30px;
+}
+
+.settlement-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 16px;
+  margin-bottom: 24px;
+
+  .action-label {
+    font-size: 28px;
+    color: rgba(255, 255, 255, 0.8);
+    margin-right: 10px;
+  }
+
+  .action-name {
+    font-size: 32px;
+    color: #fff;
+    font-weight: bold;
+  }
+}
+
+.settlement-section {
+  padding: 16px 0;
+  border-bottom: 1px solid #f0f0f0;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  .section-label {
+    font-size: 26px;
+    color: #666;
+    font-weight: 500;
+    margin-bottom: 10px;
+    display: block;
+  }
+
+  .project-name,
+  .train-employee,
+  .recruit-name {
+    font-size: 30px;
+    color: #333;
+    font-weight: bold;
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  .progress-change,
+  .train-result,
+  .recruit-rarity {
+    font-size: 26px;
+    color: #667eea;
+    display: block;
+  }
+}
+
+.rewards-row,
+.costs-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+
+  .reward-item {
+    font-size: 26px;
+    color: #4caf50;
+    font-weight: 500;
+    background: rgba(76, 175, 80, 0.1);
+    padding: 8px 16px;
+    border-radius: 8px;
+  }
+
+  .cost-item {
+    font-size: 26px;
+    color: #ff6b6b;
+    font-weight: 500;
+    background: rgba(255, 107, 107, 0.1);
+    padding: 8px 16px;
+    border-radius: 8px;
+  }
+}
+
+.settlement-messages {
+  margin-top: 16px;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 12px;
+
+  .message-item {
+    font-size: 24px;
+    color: #666;
+    display: block;
+    margin-bottom: 8px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+.settlement-footer {
+  .continue-btn {
+    background: #fff;
+    border-radius: 50px;
+    padding: 28px;
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    cursor: pointer;
+
+    &:active {
+      transform: scale(0.97);
+    }
+
+    .continue-text {
+      font-size: 32px;
+      color: #667eea;
+      font-weight: bold;
+    }
+  }
+}

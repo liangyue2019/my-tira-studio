@@ -1,31 +1,35 @@
 import { create } from 'zustand'
 import type { Project } from '../types'
-import { PROJECT_TEMPLATES, PROJECT_DIFFICULTY } from '../constants/projects'
-import { randomInt, generateUUID } from '../utils/random'
-import { useResourceStore } from './resource'
-import { useEmployeeStore } from './employee'
+import { PROJECT_TEMPLATES, PROJECT_DIFFICULTY, CLIENT_NAMES } from '../constants/projects'
+import { randomInt, randomChoice, generateUUID } from '../utils/random'
 
 interface ProjectState {
   projects: Project[]
   availableProjects: Project[]
+  completedProjectCount: number
   addProject: (project: Project) => void
   removeProject: (id: string) => void
   updateProject: (id: string, updates: Partial<Project>) => void
-  assignEmployeeToProject: (projectId: string, employeeId: string) => void
-  removeEmployeeFromProject: (projectId: string, employeeId: string) => void
-  completeProject: (id: string) => void
-  generateAvailableProject: () => Project
-  generateInitialProjects: () => void
-  refreshAvailableProjects: () => void
+  assignEmployee: (projectId: string, employeeId: string) => void
+  removeEmployee: (projectId: string, employeeId: string) => void
+  completeProject: (id: string) => Project | undefined
+  failProject: (id: string) => void
+  addProgress: (projectId: string, slots: number) => { completed: boolean; progressBefore: number; progressAfter: number }
+  generateAvailableProject: (currentDay: number) => Project
+  refreshAvailableProjects: (currentDay: number) => void
+  generateInitialProjects: (currentDay: number) => void
+  clearCompletedAndFailed: () => void
 }
 
 export const useProjectStore = create<ProjectState>((set, get) => ({
   projects: [],
   availableProjects: [],
+  completedProjectCount: 0,
 
   addProject: (project: Project) => {
     set((state) => ({
-      projects: [...state.projects, project]
+      projects: [...state.projects, project],
+      availableProjects: state.availableProjects.filter((p) => p.id !== project.id)
     }))
   },
 
@@ -43,7 +47,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     }))
   },
 
-  assignEmployeeToProject: (projectId: string, employeeId: string) => {
+  assignEmployee: (projectId: string, employeeId: string) => {
     set((state) => ({
       projects: state.projects.map((p) =>
         p.id === projectId && !p.assignedEmployees.includes(employeeId)
@@ -51,140 +55,144 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
           : p
       )
     }))
-
-    // 更新员工的 assignedProjectId 和 isWorking 状态
-    const employeeStore = useEmployeeStore.getState()
-    employeeStore.updateEmployee(employeeId, {
-      assignedProjectId: projectId,
-      isWorking: true
-    })
   },
 
-  removeEmployeeFromProject: (projectId: string, employeeId: string) => {
+  removeEmployee: (projectId: string, employeeId: string) => {
     set((state) => ({
       projects: state.projects.map((p) =>
         p.id === projectId
-          ? {
-              ...p,
-              assignedEmployees: p.assignedEmployees.filter((id) => id !== employeeId)
-            }
+          ? { ...p, assignedEmployees: p.assignedEmployees.filter((id) => id !== employeeId) }
           : p
       )
     }))
-
-    // 更新员工的 assignedProjectId 和 isWorking 状态
-    const employeeStore = useEmployeeStore.getState()
-    employeeStore.updateEmployee(employeeId, {
-      assignedProjectId: undefined,
-      isWorking: false,
-      workProgress: 0
-    })
   },
 
   completeProject: (id: string) => {
-    const { projects } = get()
-    const project = projects.find((p) => p.id === id)
+    const project = get().projects.find((p) => p.id === id)
+    if (!project) return undefined
 
-    if (project) {
-      const { addGold, addReputation, addExp } = useResourceStore.getState()
+    set((state) => ({
+      projects: state.projects.map((p) =>
+        p.id === id ? { ...p, isCompleted: true, isFailed: false } : p
+      ),
+      completedProjectCount: state.completedProjectCount + 1
+    }))
 
-      addGold(project.reward.gold)
-      addReputation(project.reward.reputation)
-      addExp(project.reward.exp)
-
-      // 重置所有分配员工的状态
-      const employeeStore = useEmployeeStore.getState()
-      project.assignedEmployees.forEach(employeeId => {
-        employeeStore.updateEmployee(employeeId, {
-          assignedProjectId: undefined,
-          isWorking: false,
-          workProgress: 0
-        })
-      })
-
-      get().removeProject(id)
-    }
+    return { ...project, isCompleted: true }
   },
 
-  generateAvailableProject: () => {
-    const template = PROJECT_TEMPLATES[randomInt(0, PROJECT_TEMPLATES.length - 1)]
-    const difficulty = randomInt(1, 5)
+  failProject: (id: string) => {
+    set((state) => ({
+      projects: state.projects.map((p) =>
+        p.id === id ? { ...p, isFailed: true, isCompleted: false } : p
+      )
+    }))
+  },
+
+  addProgress: (projectId: string, slots: number) => {
+    const project = get().projects.find((p) => p.id === projectId)
+    if (!project) return { completed: false, progressBefore: 0, progressAfter: 0 }
+
+    const progressBefore = project.slotsSpent / project.totalSlots
+    const newSlotsSpent = Math.min(project.slotsSpent + slots, project.totalSlots)
+    const progressAfter = newSlotsSpent / project.totalSlots
+
+    if (newSlotsSpent >= project.totalSlots) {
+      get().completeProject(projectId)
+      return { completed: true, progressBefore, progressAfter: 1 }
+    }
+
+    get().updateProject(projectId, { slotsSpent: newSlotsSpent })
+    return { completed: false, progressBefore, progressAfter }
+  },
+
+  generateAvailableProject: (currentDay: number) => {
+    const template = randomChoice(PROJECT_TEMPLATES)
+    const maxDifficulty = Math.min(5, Math.floor(currentDay / 5) + 1)
+    const difficulty = randomInt(1, maxDifficulty)
     const multiplier = PROJECT_DIFFICULTY[difficulty as keyof typeof PROJECT_DIFFICULTY].multiplier
+    const client = randomChoice(CLIENT_NAMES)
 
-    const requirements = {
-      coding: Math.floor(template.baseRequirements.coding * multiplier),
-      design: Math.floor(template.baseRequirements.design * multiplier),
-      communication: Math.floor(template.baseRequirements.communication * multiplier)
-    }
+    const totalSlots = Math.max(1, Math.ceil(template.baseSlots * multiplier * 0.5))
+    const deadline = Math.max(currentDay + 2, Math.ceil(template.baseDeadline * multiplier * 0.5) + currentDay)
 
-    const reward = {
-      gold: Math.floor(template.baseReward.gold * multiplier),
-      reputation: Math.floor(template.baseReward.reputation * multiplier),
-      exp: Math.floor(template.baseReward.exp * multiplier)
-    }
-
-    return {
+    const project: Project = {
       id: generateUUID(),
       name: template.name,
-      client: template.client,
-      requirements,
-      duration: Math.floor(template.baseDuration * multiplier),
-      reward,
+      client,
+      requirements: {
+        coding: Math.ceil(template.baseRequirements.coding * multiplier * 0.5),
+        design: Math.ceil(template.baseRequirements.design * multiplier * 0.5),
+        communication: Math.ceil(template.baseRequirements.communication * multiplier * 0.5)
+      },
+      totalSlots,
+      slotsSpent: 0,
+      reward: {
+        gold: Math.ceil(template.baseReward.gold * multiplier),
+        reputation: Math.ceil(template.baseReward.reputation * multiplier),
+        exp: Math.ceil(template.baseReward.exp * multiplier)
+      },
       difficulty,
-      unlockedAt: Date.now(),
-      isCompleted: false,
+      deadline,
       assignedEmployees: [],
-      progress: 0
+      isCompleted: false,
+      isFailed: false,
+      createdAt: Date.now()
     }
+
+    return project
   },
 
-  refreshAvailableProjects: () => {
-    const count = randomInt(2, 4)
+  refreshAvailableProjects: (currentDay: number) => {
+    const count = randomInt(2, 3)
     const newProjects: Project[] = []
-
     for (let i = 0; i < count; i++) {
-      newProjects.push(get().generateAvailableProject())
+      newProjects.push(get().generateAvailableProject(currentDay))
     }
-
     set({ availableProjects: newProjects })
   },
 
-  generateInitialProjects: () => {
-    // 生成 2 个简单的初始项目（难度 1，持续时间短）
+  generateInitialProjects: (currentDay: number) => {
     const initialProjects: Project[] = []
 
     for (let i = 0; i < 2; i++) {
-      const template = PROJECT_TEMPLATES[i % PROJECT_TEMPLATES.length]
-      const difficulty = 1 // 简单难度
-      const multiplier = PROJECT_DIFFICULTY[difficulty as keyof typeof PROJECT_DIFFICULTY].multiplier
+      const template = PROJECT_TEMPLATES[i]
+      const totalSlots = i === 0 ? 1 : Math.ceil(template.baseSlots * 0.5)
+      const deadline = i === 0 ? currentDay + 3 : currentDay + 5
 
-      const requirements = {
-        coding: Math.floor(template.baseRequirements.coding * multiplier * 0.5), // 降低要求
-        design: Math.floor(template.baseRequirements.design * multiplier * 0.5),
-        communication: Math.floor(template.baseRequirements.communication * multiplier * 0.5)
-      }
-
-      const reward = {
-        gold: Math.floor(template.baseReward.gold * multiplier),
-        reputation: Math.floor(template.baseReward.reputation * multiplier),
-        exp: Math.floor(template.baseReward.exp * multiplier)
-      }
-
-      initialProjects.push({
+      const project: Project = {
         id: generateUUID(),
         name: template.name,
         client: template.client,
-        requirements,
-        duration: Math.floor(template.baseDuration * multiplier * 0.3), // 缩短时间
-        reward,
-        difficulty,
-        unlockedAt: Date.now(),
-        isCompleted: false,
+        requirements: {
+          coding: Math.ceil(template.baseRequirements.coding * 0.5),
+          design: Math.ceil(template.baseRequirements.design * 0.5),
+          communication: Math.ceil(template.baseRequirements.communication * 0.5)
+        },
+        totalSlots,
+        slotsSpent: 0,
+        reward: {
+          gold: Math.ceil(template.baseReward.gold * 0.5),
+          reputation: Math.ceil(template.baseReward.reputation * 0.5),
+          exp: Math.ceil(template.baseReward.exp * 0.5)
+        },
+        difficulty: 1,
+        deadline,
         assignedEmployees: [],
-        progress: 0
-      })
+        isCompleted: false,
+        isFailed: false,
+        createdAt: Date.now()
+      }
+
+      initialProjects.push(project)
     }
 
-    set({ availableProjects: initialProjects })
+    set({ projects: initialProjects, availableProjects: [], completedProjectCount: 0 })
+  },
+
+  clearCompletedAndFailed: () => {
+    set((state) => ({
+      projects: state.projects.filter((p) => !p.isCompleted && !p.isFailed)
+    }))
   }
 }))

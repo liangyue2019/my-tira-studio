@@ -1,34 +1,44 @@
-import React, { useState, useEffect } from 'react'
+import React from 'react'
 import { View, Text, Button } from '@tarojs/components'
-import { showToast, navigateTo } from '@tarojs/taro'
+import { showToast } from '@tarojs/taro'
 import { useProjectStore } from '../../stores/project'
 import { useEmployeeStore } from '../../stores/employee'
-import { formatNumber, formatTime } from '../../utils/format'
+import { useGameStore } from '../../stores/game'
+import { formatNumber } from '../../utils/format'
+import { PROJECT_DIFFICULTY } from '../../constants/projects'
+import { EMPLOYEE_STATUS_LABELS } from '../../types'
 import './index.scss'
 
 function Project() {
-  const [currentTime, setCurrentTime] = useState(Date.now())
+  const day = useGameStore((state) => state.day)
   const projects = useProjectStore((state) => state.projects)
   const availableProjects = useProjectStore((state) => state.availableProjects)
   const addProject = useProjectStore((state) => state.addProject)
+  const assignEmployee = useProjectStore((state) => state.assignEmployee)
+  const removeEmployee = useProjectStore((state) => state.removeEmployee)
   const employees = useEmployeeStore((state) => state.employees)
-  const idleEmployees = employees.filter(e => !e.isWorking)
 
-  // 添加定时器，每秒更新一次，确保倒计时实时更新
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(Date.now())
-    }, 1000)
-
-    return () => clearInterval(timer)
-  }, [])
+  const activeProjects = projects.filter(p => !p.isCompleted && !p.isFailed)
+  const idleEmployees = employees.filter(e => e.status === 'idle')
 
   const handleAcceptProject = (project: any) => {
     addProject(project)
-    showToast({
-      title: '已接受项目',
-      icon: 'success'
+    showToast({ title: '已接受项目', icon: 'success' })
+  }
+
+  const handleAssignEmployee = (projectId: string, employeeId: string) => {
+    assignEmployee(projectId, employeeId)
+    useEmployeeStore.getState().updateEmployee(employeeId, {
+      status: 'working',
+      assignedProjectId: projectId
     })
+    showToast({ title: '已分配员工', icon: 'success' })
+  }
+
+  const handleRemoveEmployee = (projectId: string, employeeId: string) => {
+    removeEmployee(projectId, employeeId)
+    useEmployeeStore.getState().resetEmployeeStatus(employeeId)
+    showToast({ title: '已移除员工', icon: 'success' })
   }
 
   const getColorByDifficulty = (difficulty: number) => {
@@ -36,34 +46,21 @@ function Project() {
     return colors[difficulty - 1] || '#999'
   }
 
-  const calculateRemainingTime = (project: any) => {
-    const assignedEmployees = employees.filter(e => e.assignedProjectId === project.id && e.isWorking)
-    if (assignedEmployees.length === 0) {
-      return project.duration
-    }
-
-    const totalEfficiency = assignedEmployees.reduce((sum, emp) => sum + emp.abilities.efficiency, 0)
-    const baseTime = project.duration
-    const adjustedTime = baseTime / (totalEfficiency / 100)
-    const remainingProgress = 1 - project.progress
-    return Math.floor(adjustedTime * remainingProgress)
-  }
-
   return (
     <View className='project'>
       <View className='header'>
         <Text className='title'>项目任务</Text>
-        <Text >{currentTime}</Text>
+        <Text className='day-info'>第 {day} 天</Text>
       </View>
 
       <View className='section'>
-        <Text className='section-title'>进行中项目 ({projects.length})</Text>
-        {projects.length === 0 ? (
+        <Text className='section-title'>进行中项目 ({activeProjects.length})</Text>
+        {activeProjects.length === 0 ? (
           <View className='empty-state'>
             <Text className='empty-text'>暂无进行中项目</Text>
           </View>
         ) : (
-          projects.map((project) => (
+          activeProjects.map((project) => (
             <View
               key={project.id}
               className='project-card'
@@ -71,6 +68,9 @@ function Project() {
             >
               <Text className='project-name'>{project.name}</Text>
               <Text className='project-client'>客户：{project.client}</Text>
+              <Text className='project-difficulty'>
+                难度：{'★'.repeat(project.difficulty)}
+              </Text>
               <View className='project-requirements'>
                 <Text className='req-item'>编程：{project.requirements.coding}</Text>
                 <Text className='req-item'>设计：{project.requirements.design}</Text>
@@ -80,11 +80,56 @@ function Project() {
                 <View className='progress-bar'>
                   <View
                     className='progress-fill'
-                    style={{ width: `${project.progress * 100}%` }}
+                    style={{ width: `${(project.slotsSpent / project.totalSlots) * 100}%` }}
                   />
                 </View>
-                <Text className='progress-text'>{formatTime(calculateRemainingTime(project))}</Text>
+                <Text className='progress-text'>
+                  {project.slotsSpent}/{project.totalSlots} 时段
+                </Text>
               </View>
+              <Text className='project-deadline'>
+                截止：第 {project.deadline} 天（剩余 {project.deadline - day} 天）
+              </Text>
+
+              <View className='project-employees'>
+                <Text className='employees-label'>已分配员工：</Text>
+                {project.assignedEmployees.length === 0 ? (
+                  <Text className='no-employees'>未分配</Text>
+                ) : (
+                  project.assignedEmployees.map(empId => {
+                    const emp = employees.find(e => e.id === empId)
+                    return emp ? (
+                      <View key={empId} className='assigned-employee'>
+                        <Text className='emp-name'>{emp.name}</Text>
+                        <Text
+                          className='emp-remove'
+                          onClick={() => handleRemoveEmployee(project.id, empId)}
+                        >
+                          ✕
+                        </Text>
+                      </View>
+                    ) : null
+                  })
+                )}
+              </View>
+
+              {idleEmployees.length > 0 && (
+                <View className='assign-section'>
+                  <Text className='assign-label'>分配空闲员工：</Text>
+                  <View className='assign-list'>
+                    {idleEmployees.map(emp => (
+                      <View
+                        key={emp.id}
+                        className='assign-emp-btn'
+                        onClick={() => handleAssignEmployee(project.id, emp.id)}
+                      >
+                        <Text className='assign-emp-text'>{emp.name}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+
               <View className='project-reward'>
                 <Text className='reward-item'>💰 {formatNumber(project.reward.gold)}</Text>
                 <Text className='reward-item'>🏆 {formatNumber(project.reward.reputation)}</Text>
@@ -99,7 +144,7 @@ function Project() {
         <Text className='section-title'>可接受项目 ({availableProjects.length})</Text>
         {availableProjects.length === 0 ? (
           <View className='empty-state'>
-            <Text className='empty-text'>暂无可用项目</Text>
+            <Text className='empty-text'>暂无可用项目，每天早上会刷新</Text>
           </View>
         ) : (
           availableProjects.map((project) => (
@@ -111,13 +156,15 @@ function Project() {
               <Text className='project-name'>{project.name}</Text>
               <Text className='project-client'>客户：{project.client}</Text>
               <Text className='project-difficulty'>
-                难度：{'★'.repeat(project.difficulty)}
+                难度：{'★'.repeat(project.difficulty)} ({PROJECT_DIFFICULTY[project.difficulty as keyof typeof PROJECT_DIFFICULTY]?.name})
               </Text>
               <View className='project-requirements'>
                 <Text className='req-item'>编程：{project.requirements.coding}</Text>
                 <Text className='req-item'>设计：{project.requirements.design}</Text>
                 <Text className='req-item'>沟通：{project.requirements.communication}</Text>
               </View>
+              <Text className='project-slots'>需要 {project.totalSlots} 个时段</Text>
+              <Text className='project-deadline'>截止：第 {project.deadline} 天</Text>
               <View className='project-reward'>
                 <Text className='reward-item'>💰 {formatNumber(project.reward.gold)}</Text>
                 <Text className='reward-item'>🏆 {formatNumber(project.reward.reputation)}</Text>
@@ -132,15 +179,6 @@ function Project() {
             </View>
           ))
         )}
-      </View>
-
-      <View className='back-button'>
-        <Button
-          className='back-btn'
-          onClick={() => navigateTo({ url: '/pages/index/index' })}
-        >
-          返回工作室
-        </Button>
       </View>
     </View>
   )

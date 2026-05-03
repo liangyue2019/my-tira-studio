@@ -1,5 +1,6 @@
 import { View, Text } from '@tarojs/components'
 import { useGameStore } from '../stores/game'
+import type { DialogOption } from '../types'
 import './DialogModal.scss'
 
 function DialogModal() {
@@ -8,29 +9,17 @@ function DialogModal() {
   const selectDialogOption = useGameStore((state) => state.selectDialogOption)
   const hideDialog = useGameStore((state) => state.hideDialog)
 
-  console.log('currentDialogId', currentDialogId)
-  if (!currentDialogId) {
-    return null
-  }
+  if (!currentDialogId) return null
 
-  console.log('dialogs', dialogs)
   const dialog = dialogs.find((d) => d.id === currentDialogId)
-  console.log('dialog', dialog)
+  if (!dialog) return null
 
-  if (!dialog) {
-    return null
-  }
-
-  const handleOptionClick = (option) => {
+  const handleOptionClick = (option: DialogOption) => {
     selectDialogOption(dialog.id, option)
   }
 
-  const handleClose = () => {
-    hideDialog()
-  }
-
   return (
-    <View className='dialog-modal-overlay' onClick={handleClose}>
+    <View className='dialog-modal-overlay' onClick={hideDialog}>
       <View className='dialog-modal' onClick={(e) => e.stopPropagation()}>
         <View className='dialog-header'>
           {dialog.avatar && (

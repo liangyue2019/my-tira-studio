@@ -1,15 +1,19 @@
 import React from 'react'
 import { View, Text, Button } from '@tarojs/components'
-import { showToast, showActionSheet, showModal, navigateTo } from '@tarojs/taro'
+import { showToast, showModal } from '@tarojs/taro'
 import { useEmployeeStore } from '../../stores/employee'
 import { useProjectStore } from '../../stores/project'
-import { RARITY_NAMES, COLOR_PREFIXES } from '../../constants/config'
+import { EMPLOYEE_STATUS_LABELS, EMPLOYEE_STATUS_ICONS, RARITY_NAMES } from '../../types'
 import { formatNumber } from '../../utils/format'
 import './index.scss'
 
 function Employee() {
   const employees = useEmployeeStore((state) => state.employees)
   const updateEmployee = useEmployeeStore((state) => state.updateEmployee)
+  const removeEmployee = useEmployeeStore((state) => state.removeEmployee)
+  const resetEmployeeStatus = useEmployeeStore((state) => state.resetEmployeeStatus)
+  const assignEmployee = useProjectStore((state) => state.assignEmployee)
+  const removeEmployeeFromProject = useProjectStore((state) => state.removeEmployee)
   const projects = useProjectStore((state) => state.projects)
 
   const getColorStyle = (color: string) => {
@@ -24,45 +28,35 @@ function Employee() {
   }
 
   const handleAssignProject = (employee: any) => {
-    if (employee.isWorking) {
-      showToast({
-        title: '员工正在工作中',
-        icon: 'none'
-      })
+    if (employee.status !== 'idle') {
+      showToast({ title: '员工正在忙碌中', icon: 'none' })
       return
     }
 
-    const availableProjects = projects.filter(p => !p.assignedEmployees.includes(employee.id))
-    
-    if (availableProjects.length === 0) {
-      showToast({
-        title: '没有可用项目',
-        icon: 'none'
-      })
+    const activeProjects = projects.filter(p => !p.isCompleted && !p.isFailed && !p.assignedEmployees.includes(employee.id))
+    if (activeProjects.length === 0) {
+      showToast({ title: '没有可分配的项目', icon: 'none' })
       return
     }
 
-    showActionSheet({
-      itemList: availableProjects.map(p => p.name)
-    }).then((res) => {
-      const project = availableProjects[res.tapIndex]
-      updateEmployee(employee.id, {
-        isWorking: true,
-        assignedProjectId: project.id
-      })
-      showToast({
-        title: '已分配工作',
-        icon: 'success'
+    import('@tarojs/taro').then(({ showActionSheet }) => {
+      showActionSheet({
+        itemList: activeProjects.map(p => p.name)
+      }).then((res) => {
+        const project = activeProjects[res.tapIndex]
+        assignEmployee(project.id, employee.id)
+        updateEmployee(employee.id, {
+          status: 'working',
+          assignedProjectId: project.id
+        })
+        showToast({ title: '已分配工作', icon: 'success' })
       })
     })
   }
 
   const handleDismiss = (employee: any) => {
-    if (employee.isWorking) {
-      showToast({
-        title: '工作中的员工无法解雇',
-        icon: 'none'
-      })
+    if (employee.status !== 'idle') {
+      showToast({ title: '忙碌中的员工无法解雇', icon: 'none' })
       return
     }
 
@@ -71,13 +65,18 @@ function Employee() {
       content: `确定要解雇 ${employee.name} 吗？`
     }).then((res) => {
       if (res.confirm) {
-        useEmployeeStore.getState().removeEmployee(employee.id)
-        showToast({
-          title: '已解雇',
-          icon: 'success'
-        })
+        removeEmployee(employee.id)
+        showToast({ title: '已解雇', icon: 'success' })
       }
     })
+  }
+
+  const handleResetStatus = (employee: any) => {
+    if (employee.assignedProjectId) {
+      removeEmployeeFromProject(employee.assignedProjectId, employee.id)
+    }
+    resetEmployeeStatus(employee.id)
+    showToast({ title: '已重置状态', icon: 'success' })
   }
 
   return (
@@ -87,47 +86,46 @@ function Employee() {
       </View>
 
       <View className='stats'>
-        <Text className='stat-text'>员工总数：{employees.length}</Text>
+        <Text className='stat-text'>总数：{employees.length}</Text>
         <Text className='stat-text'>
-          工作中：{employees.filter(e => e.isWorking).length}
+          空闲：{employees.filter(e => e.status === 'idle').length}
         </Text>
         <Text className='stat-text'>
-          空闲：{employees.filter(e => !e.isWorking).length}
+          工作中：{employees.filter(e => e.status === 'working').length}
         </Text>
       </View>
 
       <View className='employee-list'>
         {employees.length === 0 ? (
           <View className='empty-state'>
-            <Text className='empty-text'>暂无员工，快去招募吧！</Text>
+            <Text className='empty-text'>暂无员工，在主页选择招募！</Text>
           </View>
         ) : (
           employees.map((employee) => (
-            <View 
-              key={employee.id} 
+            <View
+              key={employee.id}
               className='employee-card'
               style={{ borderColor: getColorStyle(employee.color) }}
             >
               <View className='card-header'>
-                <Text 
+                <Text
                   className='employee-name'
                   style={{ color: getColorStyle(employee.color) }}
                 >
                   {employee.name}
                 </Text>
-                <Text 
+                <Text
                   className='employee-rarity'
                   style={{ color: getColorStyle(employee.color) }}
                 >
-                  {RARITY_NAMES[employee.rarity as keyof typeof RARITY_NAMES]}
+                  {RARITY_NAMES[employee.rarity]}
                 </Text>
               </View>
-              
+
               <View className='employee-info'>
-                <Text className='info-item'>等级：Lv.{employee.level}</Text>
-                <Text className='info-item'>颜色：{employee.color}夜</Text>
+                <Text className='info-item'>Lv.{employee.level}</Text>
                 <Text className='info-item'>
-                  状态：{employee.isWorking ? '🔒 工作中' : '✅ 空闲'}
+                  {EMPLOYEE_STATUS_ICONS[employee.status]} {EMPLOYEE_STATUS_LABELS[employee.status]}
                 </Text>
               </View>
 
@@ -151,17 +149,25 @@ function Employee() {
               </View>
 
               <View className='card-actions'>
-                <Button 
+                <Button
                   className='action-btn'
                   onClick={() => handleAssignProject(employee)}
-                  disabled={employee.isWorking}
+                  disabled={employee.status !== 'idle'}
                 >
-                  {employee.isWorking ? '工作中' : '分配工作'}
+                  分配工作
                 </Button>
-                <Button 
+                {employee.status !== 'idle' && (
+                  <Button
+                    className='action-btn'
+                    onClick={() => handleResetStatus(employee)}
+                  >
+                    重置状态
+                  </Button>
+                )}
+                <Button
                   className='action-btn danger'
                   onClick={() => handleDismiss(employee)}
-                  disabled={employee.isWorking}
+                  disabled={employee.status !== 'idle'}
                 >
                   解雇
                 </Button>
@@ -169,15 +175,6 @@ function Employee() {
             </View>
           ))
         )}
-      </View>
-
-      <View className='back-button'>
-        <Button 
-          className='back-btn'
-          onClick={() => navigateTo({ url: '/pages/index/index' })}
-        >
-          返回工作室
-        </Button>
       </View>
     </View>
   )

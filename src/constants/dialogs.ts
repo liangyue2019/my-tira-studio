@@ -6,7 +6,7 @@ export const DIALOGS: Dialog[] = [
     title: '欢迎来到 AI 工作室',
     speaker: '白夜 tira',
     avatar: '/assets/avatars/tira.png',
-    text: '你和我一起创立了这家 IT 工作室！我开发的 AI-agent 系统可以招募智能体员工！\n\n你已经获得了初始员工和初始项目，快去让他们开始工作吧！',
+    text: '你和我一起创立了这家 IT 工作室！我开发的 AI-agent 系统可以招募智能体员工！\n\n每个时段你可以选择一个行动，合理安排时间和资源是成功的关键！\n\n你已经获得了初始员工和初始项目，开始你的创业之旅吧！',
     options: [
       {
         id: 'start',
@@ -128,6 +128,29 @@ export const DIALOGS: Dialog[] = [
     trigger: {
       type: 'employees',
       value: 5
+    },
+    isTriggered: false
+  },
+  {
+    id: 'day_7',
+    title: '一周纪念',
+    speaker: '白夜 tira',
+    avatar: '/assets/avatars/tira.png',
+    text: '不知不觉，我们的工作室已经运营一周了！虽然辛苦，但看着工作室一天天成长，一切都值得！',
+    options: [
+      {
+        id: 'cheers',
+        text: '干杯！',
+        reward: {
+          gold: 500,
+          reputation: 20,
+          power: 10
+        }
+      }
+    ],
+    trigger: {
+      type: 'day',
+      value: 7
     },
     isTriggered: false
   }

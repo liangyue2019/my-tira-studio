@@ -41,25 +41,36 @@ pnpm install
 
 #### H5 开发
 ```bash
+# 使用 pnpm 脚本
 pnpm dev:h5
+
+# 或直接使用 npx
+npx taro build --type h5 --watch
 ```
 访问 http://localhost:10086/
 
 #### 微信小程序开发
 ```bash
+# 使用 pnpm 脚本
 pnpm dev:weapp
+
+# 或直接使用 npx
+npx taro build --type weapp --watch
 ```
 
 #### 其他平台
 ```bash
 # 支付宝小程序
 pnpm dev:alipay
+npx taro build --type alipay --watch
 
 # 抖音小程序
 pnpm dev:tt
+npx taro build --type tt --watch
 
 # QQ 小程序
 pnpm dev:qq
+npx taro build --type qq --watch
 ```
 
 ### 生产构建
@@ -67,14 +78,21 @@ pnpm dev:qq
 ```bash
 # H5 构建
 pnpm build:h5
+npx taro build --type h5
 
 # 微信小程序构建
 pnpm build:weapp
+npx taro build --type weapp
 
 # 其他平台构建
 pnpm build:alipay
+npx taro build --type alipay
+
 pnpm build:tt
+npx taro build --type tt
+
 pnpm build:qq
+npx taro build --type qq
 ```
 
 ## 🎯 游戏系统

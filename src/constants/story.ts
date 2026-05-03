@@ -6,9 +6,7 @@ export const STORY_CHAPTERS: StoryChapter[] = [
     title: '第一章：新的开始',
     content: '我和最好的朋友白夜 tira 决定一起创立一家 IT 工作室。白夜 tira 是个天才开发者，他开发了一个神奇的 AI-agent 系统。这个系统可以用电力代币招募智能体员工！我们的工作室即将启航...',
     unlockRequirement: {
-      reputation: 0,
-      gold: 0,
-      employees: 0
+      day: 1
     },
     isUnlocked: true,
     isRead: false
@@ -51,6 +49,17 @@ export const STORY_CHAPTERS: StoryChapter[] = [
     unlockRequirement: {
       reputation: 500,
       gold: 5000
+    },
+    isUnlocked: false,
+    isRead: false
+  },
+  {
+    id: 'chapter_6',
+    title: '第六章：行业新星',
+    content: '一个月过去了，我们的工作室已经在业内小有名气。白夜 tira 说，AI-agent 系统还能进化，也许未来我们能看到更不可思议的智能体...',
+    unlockRequirement: {
+      day: 30,
+      reputation: 100
     },
     isUnlocked: false,
     isRead: false

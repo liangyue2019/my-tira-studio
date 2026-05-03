@@ -1,62 +1,64 @@
 import { create } from 'zustand'
-import type { StoryChapter, Achievement, Dialog, DialogOption } from '../types'
+import type { TimeSlot, GamePhase, StoryChapter, Dialog, DialogOption, SettlementResult, DaySettlementResult, GameEvent, ActionParams } from '../types'
 import { STORY_CHAPTERS } from '../constants/story'
-import { ACHIEVEMENTS } from '../constants/achievements'
 import { DIALOGS } from '../constants/dialogs'
 import { STORAGE_KEY, SAVE_INTERVAL } from '../constants/config'
 import { useResourceStore } from './resource'
 import { useEmployeeStore } from './employee'
 import { useProjectStore } from './project'
+import { executeAction, settleDay } from './settlement'
 
 interface GameStore {
-  resources: any
-  employees: any[]
-  projects: any[]
-  achievements: Achievement[]
+  day: number
+  timeSlot: TimeSlot
+  phase: GamePhase
   storyChapters: StoryChapter[]
   dialogs: Dialog[]
   currentDialogId: string | null
+  currentEvent: GameEvent | null
+  actionLog: SettlementResult[]
+  dayHistory: DaySettlementResult[]
+  lastSettlementResult: SettlementResult | null
+  lastDayResult: DaySettlementResult | null
   lastSaveTime: number
-  totalPlayTime: number
-  offlineStartTime: number
   isFirstLaunch: boolean
   showIntroStory: boolean
+
   initializeGame: () => void
   saveGame: () => void
   loadGame: () => void
-  updateStoryChapter: (id: string, updates: Partial<StoryChapter>) => void
-  unlockAchievement: (id: string) => void
-  checkAchievements: () => void
-  setOfflineStartTime: (time: number) => void
+  selectAction: (actionId: string, params?: ActionParams) => SettlementResult | null
+  advanceTimeSlot: () => void
+  settleDayEnd: () => DaySettlementResult
+  setPhase: (phase: GamePhase) => void
   setShowIntroStory: (show: boolean) => void
   markFirstLaunchCompleted: () => void
   showDialog: (dialogId: string) => void
   hideDialog: () => void
   selectDialogOption: (dialogId: string, option: DialogOption) => void
   checkDialogTriggers: () => void
+  updateStoryChapter: (id: string, updates: Partial<StoryChapter>) => void
+  setCurrentEvent: (event: GameEvent | null) => void
+  resetGame: () => void
 }
 
 export const useGameStore = create<GameStore>((set, get) => ({
-  resources: {
-    gold: 1000,
-    power: 10,
-    reputation: 0,
-    exp: 0
-  },
-  employees: [],
-  projects: [],
-  achievements: [],
-  storyChapters: [],
-  dialogs: [],
+  day: 1,
+  timeSlot: 'morning',
+  phase: 'action_select',
+  storyChapters: STORY_CHAPTERS.map(s => ({ ...s })),
+  dialogs: DIALOGS.map(d => ({ ...d })),
   currentDialogId: null,
+  currentEvent: null,
+  actionLog: [],
+  dayHistory: [],
+  lastSettlementResult: null,
+  lastDayResult: null,
   lastSaveTime: 0,
-  totalPlayTime: 0,
-  offlineStartTime: Date.now(),
   isFirstLaunch: true,
   showIntroStory: true,
 
   initializeGame: () => {
-    console.log('initializeGame')
     const state = get()
     state.loadGame()
 
@@ -68,19 +70,23 @@ export const useGameStore = create<GameStore>((set, get) => ({
   saveGame: () => {
     const resources = useResourceStore.getState().resources
     const employees = useEmployeeStore.getState().employees
-    const projects = useProjectStore.getState().projects
+    const projectState = useProjectStore.getState()
 
     const gameState = {
+      day: get().day,
+      timeSlot: get().timeSlot,
+      phase: get().phase,
       resources,
       employees,
-      projects,
-      achievements: getAchievements(),
-      storyChapters: getStoryChapters(),
-      dialogs: getDialogs(),
+      projects: projectState.projects,
+      availableProjects: projectState.availableProjects,
+      completedProjectCount: projectState.completedProjectCount,
+      storyChapters: get().storyChapters,
+      dialogs: get().dialogs,
       currentDialogId: get().currentDialogId,
+      actionLog: get().actionLog,
+      dayHistory: get().dayHistory,
       lastSaveTime: Date.now(),
-      totalPlayTime: get().totalPlayTime,
-      offlineStartTime: get().offlineStartTime,
       isFirstLaunch: get().isFirstLaunch,
       showIntroStory: get().showIntroStory
     }
@@ -88,7 +94,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(gameState))
       set({ lastSaveTime: Date.now() })
-      console.log('游戏已保存')
     } catch (e) {
       console.error('保存游戏失败:', e)
     }
@@ -96,126 +101,99 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   loadGame: () => {
     try {
-      console.log('开始加载游戏')
       const saved = localStorage.getItem(STORAGE_KEY)
-
       if (saved) {
         const gameState = JSON.parse(saved)
 
         useResourceStore.setState({ resources: gameState.resources })
         useEmployeeStore.setState({ employees: gameState.employees || [] })
-        useProjectStore.setState({ projects: gameState.projects || [] })
+        useProjectStore.setState({
+          projects: gameState.projects || [],
+          availableProjects: gameState.availableProjects || [],
+          completedProjectCount: gameState.completedProjectCount || 0
+        })
 
         set({
-          dialogs: gameState.dialogs || getDialogs(),
+          day: gameState.day || 1,
+          timeSlot: gameState.timeSlot || 'morning',
+          phase: gameState.phase || 'action_select',
+          storyChapters: gameState.storyChapters || STORY_CHAPTERS.map(s => ({ ...s })),
+          dialogs: gameState.dialogs || DIALOGS.map(d => ({ ...d })),
           currentDialogId: gameState.currentDialogId || null,
-          lastSaveTime: gameState.lastSaveTime || 0,
-          totalPlayTime: gameState.totalPlayTime || 0,
-          offlineStartTime: gameState.offlineStartTime || Date.now(),
+          actionLog: gameState.actionLog || [],
+          dayHistory: gameState.dayHistory || [],
           isFirstLaunch: gameState.isFirstLaunch !== undefined ? gameState.isFirstLaunch : false,
           showIntroStory: gameState.showIntroStory !== undefined ? gameState.showIntroStory : false
         })
-
-        console.log('游戏已加载')
       } else {
-        set({
-          dialogs: getDialogs(),
-          currentDialogId: null,
-          offlineStartTime: Date.now()
-        })
-        useProjectStore.getState().generateInitialProjects()
+        useProjectStore.getState().generateInitialProjects(1)
         useEmployeeStore.getState().generateInitialEmployee()
-        set({ showIntroStory: true, isFirstLaunch: true })
-        console.log('新游戏开始')
+        set({
+          day: 1,
+          timeSlot: 'morning',
+          phase: 'action_select',
+          storyChapters: STORY_CHAPTERS.map(s => ({ ...s })),
+          dialogs: DIALOGS.map(d => ({ ...d })),
+          showIntroStory: true,
+          isFirstLaunch: true
+        })
       }
     } catch (e) {
       console.error('加载游戏失败:', e)
-      set({
-        dialogs: getDialogs(),
-        currentDialogId: null,
-        offlineStartTime: Date.now()
-      })
+      useProjectStore.getState().generateInitialProjects(1)
+      useEmployeeStore.getState().generateInitialEmployee()
     }
   },
 
-  updateStoryChapter: (id: string, updates: Partial<StoryChapter>) => {
-    const chapters = getStoryChapters()
-    const updatedChapters = chapters.map((chapter) =>
-      chapter.id === id ? { ...chapter, ...updates } : chapter
-    )
+  selectAction: (actionId: string, params?: ActionParams) => {
+    const state = get()
+    if (state.phase !== 'action_select') return null
 
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      if (saved) {
-        const gameState = JSON.parse(saved)
-        gameState.storyChapters = updatedChapters
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(gameState))
-      }
-    } catch (e) {
-      console.error('更新剧情失败:', e)
+    const result = executeAction(actionId, params)
+
+    set((state) => ({
+      actionLog: [...state.actionLog, result],
+      lastSettlementResult: result,
+      phase: 'settlement'
+    }))
+
+    get().checkDialogTriggers()
+
+    return result
+  },
+
+  advanceTimeSlot: () => {
+    const { day, timeSlot } = get()
+
+    if (timeSlot === 'morning') {
+      set({ timeSlot: 'afternoon', phase: 'action_select' })
+    } else if (timeSlot === 'afternoon') {
+      set({ timeSlot: 'evening', phase: 'action_select' })
+    } else {
+      get().settleDayEnd()
     }
   },
 
-  unlockAchievement: (id: string) => {
-    const achievements = getAchievements()
-    const achievement = achievements.find((a) => a.id === id)
+  settleDayEnd: () => {
+    const dayResult = settleDay()
 
-    if (achievement && !achievement.isUnlocked) {
-      achievement.isUnlocked = true
-      achievement.unlockedAt = Date.now()
+    set((state) => ({
+      day: state.day + 1,
+      timeSlot: 'morning',
+      phase: 'day_summary',
+      dayHistory: [...state.dayHistory, dayResult],
+      lastDayResult: dayResult,
+      actionLog: []
+    }))
 
-      if (achievement.reward.gold) {
-        useResourceStore.getState().addGold(achievement.reward.gold)
-      }
-      if (achievement.reward.power) {
-        useResourceStore.getState().addPower(achievement.reward.power)
-      }
-      if (achievement.reward.reputation) {
-        useResourceStore.getState().addReputation(achievement.reward.reputation)
-      }
+    get().checkDialogTriggers()
+    get().saveGame()
 
-      console.log(`解锁成就：${achievement.title}`)
-    }
+    return dayResult
   },
 
-  checkAchievements: () => {
-    const employees = useEmployeeStore.getState().employees
-    const resources = useResourceStore.getState().resources
-    const projects = useProjectStore.getState().projects
-
-    const achievements = getAchievements()
-
-    achievements.forEach((achievement) => {
-      if (!achievement.isUnlocked) {
-        let unlocked = false
-
-        switch (achievement.condition.type) {
-          case 'employees':
-            unlocked = employees.length >= achievement.condition.value
-            break
-          case 'gold':
-            unlocked = resources.gold >= achievement.condition.value
-            break
-          case 'reputation':
-            unlocked = resources.reputation >= achievement.condition.value
-            break
-          case 'projects':
-            unlocked = projects.filter((p) => p.isCompleted).length >= achievement.condition.value
-            break
-          case 'level':
-            unlocked = employees.some((e) => e.level >= achievement.condition.value)
-            break
-        }
-
-        if (unlocked) {
-          get().unlockAchievement(achievement.id)
-        }
-      }
-    })
-  },
-
-  setOfflineStartTime: (time: number) => {
-    set({ offlineStartTime: time })
+  setPhase: (phase: GamePhase) => {
+    set({ phase })
   },
 
   setShowIntroStory: (show: boolean) => {
@@ -224,16 +202,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   markFirstLaunchCompleted: () => {
     set({ isFirstLaunch: false })
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      if (saved) {
-        const gameState = JSON.parse(saved)
-        gameState.isFirstLaunch = false
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(gameState))
-      }
-    } catch (e) {
-      console.error('标记首次启动失败:', e)
-    }
   },
 
   showDialog: (dialogId: string) => {
@@ -246,25 +214,21 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   selectDialogOption: (dialogId: string, option: DialogOption) => {
     if (option.reward) {
-      if (option.reward.gold) {
-        useResourceStore.getState().addGold(option.reward.gold)
-      }
-      if (option.reward.power) {
-        useResourceStore.getState().addPower(option.reward.power)
-      }
-      if (option.reward.reputation) {
-        useResourceStore.getState().addReputation(option.reward.reputation)
-      }
-      if (option.reward.exp) {
-        useResourceStore.getState().addExp(option.reward.exp)
-      }
+      const resourceStore = useResourceStore.getState()
+      if (option.reward.gold) resourceStore.addGold(option.reward.gold)
+      if (option.reward.power) resourceStore.addPower(option.reward.power)
+      if (option.reward.reputation) resourceStore.addReputation(option.reward.reputation)
+      if (option.reward.exp) resourceStore.addExp(option.reward.exp)
     }
 
-    const dialogs = get().dialogs.map((d) =>
-      d.id === dialogId ? { ...d, isTriggered: true, triggerTime: Date.now() } : d
-    )
-    set({ dialogs, currentDialogId: null })
+    set((state) => ({
+      dialogs: state.dialogs.map((d) =>
+        d.id === dialogId ? { ...d, isTriggered: true, triggerTime: Date.now() } : d
+      ),
+      currentDialogId: null
+    }))
 
+    const dialog = get().dialogs.find(d => d.id === dialogId)
     if (option.nextDialogId) {
       set({ currentDialogId: option.nextDialogId })
     }
@@ -273,21 +237,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
   checkDialogTriggers: () => {
     const employees = useEmployeeStore.getState().employees
     const resources = useResourceStore.getState().resources
-    const projects = useProjectStore.getState().projects
+    const projectStore = useProjectStore.getState()
     const dialogs = get().dialogs
     const currentDialogId = get().currentDialogId
+    const day = get().day
 
-    if (currentDialogId) {
-      return
-    }
+    if (currentDialogId) return
 
     for (const dialog of dialogs) {
-      if (dialog.isTriggered) {
-        continue
-      }
+      if (dialog.isTriggered) continue
 
       let shouldTrigger = false
-
       switch (dialog.trigger.type) {
         case 'employees':
           shouldTrigger = employees.length >= dialog.trigger.value
@@ -299,10 +259,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
           shouldTrigger = resources.reputation >= dialog.trigger.value
           break
         case 'projects':
-          shouldTrigger = projects.filter((p) => p.isCompleted).length >= dialog.trigger.value
+          shouldTrigger = projectStore.completedProjectCount >= dialog.trigger.value
           break
         case 'level':
           shouldTrigger = employees.some((e) => e.level >= dialog.trigger.value)
+          break
+        case 'day':
+          shouldTrigger = day >= dialog.trigger.value
           break
       }
 
@@ -311,45 +274,42 @@ export const useGameStore = create<GameStore>((set, get) => ({
         break
       }
     }
+  },
+
+  updateStoryChapter: (id: string, updates: Partial<StoryChapter>) => {
+    set((state) => ({
+      storyChapters: state.storyChapters.map(chapter =>
+        chapter.id === id ? { ...chapter, ...updates } : chapter
+      )
+    }))
+  },
+
+  setCurrentEvent: (event: GameEvent | null) => {
+    set({ currentEvent: event, phase: event ? 'event' : 'action_select' })
+  },
+
+  resetGame: () => {
+    localStorage.removeItem(STORAGE_KEY)
+
+    useResourceStore.getState().resetResources()
+    useEmployeeStore.getState().generateInitialEmployee()
+    useProjectStore.getState().generateInitialProjects(1)
+
+    set({
+      day: 1,
+      timeSlot: 'morning',
+      phase: 'action_select',
+      storyChapters: STORY_CHAPTERS.map(s => ({ ...s })),
+      dialogs: DIALOGS.map(d => ({ ...d, isTriggered: false, triggerTime: undefined })),
+      currentDialogId: null,
+      currentEvent: null,
+      actionLog: [],
+      dayHistory: [],
+      lastSettlementResult: null,
+      lastDayResult: null,
+      lastSaveTime: 0,
+      isFirstLaunch: true,
+      showIntroStory: true
+    })
   }
 }))
-
-function getStoryChapters(): StoryChapter[] {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved) {
-      const gameState = JSON.parse(saved)
-      return gameState.storyChapters || STORY_CHAPTERS
-    }
-  } catch (e) {
-    console.error('获取剧情失败:', e)
-  }
-  return STORY_CHAPTERS
-}
-
-function getAchievements(): Achievement[] {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved) {
-      const gameState = JSON.parse(saved)
-      return gameState.achievements || ACHIEVEMENTS
-    }
-  } catch (e) {
-    console.error('获取成就失败:', e)
-  }
-  return ACHIEVEMENTS
-}
-
-function getDialogs(): Dialog[] {
-  console.log('getDialogs')
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved) {
-      const gameState = JSON.parse(saved)
-      return gameState.dialogs || DIALOGS
-    }
-  } catch (e) {
-    console.error('获取对话失败:', e)
-  }
-  return DIALOGS
-}
