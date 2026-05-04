@@ -4,117 +4,123 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.85);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  padding: 30px;
+  padding: 24px;
 }
 
 .event-modal {
-  background: #fff;
-  border-radius: 24px;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 4px;
   width: 100%;
   max-width: 600px;
   max-height: 80vh;
   overflow-y: auto;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
 
   .event-header {
-    padding: 30px;
+    padding: 24px;
     text-align: center;
-    border-bottom: 3px solid #999;
+    border-bottom: 1px solid #30363d;
 
     .event-rarity {
-      font-size: 22px;
-      font-weight: 500;
+      font-size: 20px;
+      font-weight: bold;
       display: block;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
+      letter-spacing: 2px;
     }
 
     .event-title {
-      font-size: 36px;
-      color: #333;
+      font-size: 32px;
+      color: #c9d1d9;
       font-weight: bold;
       display: block;
     }
   }
 
   .event-content {
-    padding: 24px 30px;
+    padding: 20px 24px;
 
     .event-description {
-      font-size: 28px;
-      color: #555;
+      font-size: 26px;
+      color: #8b949e;
       line-height: 1.6;
     }
   }
 
   .event-options {
-    padding: 0 20px 20px;
+    padding: 0 16px 16px;
 
     .event-option {
-      padding: 20px 24px;
-      margin-bottom: 12px;
-      background: #f8f9fa;
-      border-radius: 16px;
+      padding: 16px 20px;
+      margin-bottom: 10px;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 2px;
       cursor: pointer;
-      transition: background 0.2s;
+      transition: border-color 0.2s;
 
       &:active {
-        background: #e8e9ea;
+        border-color: #58a6ff;
+        box-shadow: 0 0 10px rgba(88, 166, 255, 0.2);
       }
 
       &.locked {
-        opacity: 0.5;
+        opacity: 0.4;
         cursor: not-allowed;
 
         &:active {
-          background: #f8f9fa;
+          border-color: #30363d;
+          box-shadow: none;
         }
       }
 
       .option-text {
-        font-size: 28px;
-        color: #333;
+        font-size: 26px;
+        color: #c9d1d9;
         font-weight: 500;
         display: block;
-        margin-bottom: 8px;
+        margin-bottom: 6px;
       }
 
       .option-locked {
-        font-size: 22px;
-        color: #ff6b6b;
+        font-size: 20px;
+        color: #f85149;
         display: block;
-        margin-bottom: 8px;
+        margin-bottom: 6px;
       }
 
       .option-effects {
         display: flex;
         flex-wrap: wrap;
-        gap: 10px;
+        gap: 8px;
 
         .option-rewards,
         .option-penalties {
           display: flex;
           flex-wrap: wrap;
-          gap: 8px;
+          gap: 6px;
         }
 
         .effect-item {
-          font-size: 22px;
-          padding: 4px 12px;
-          border-radius: 6px;
+          font-size: 20px;
+          padding: 4px 10px;
+          border-radius: 2px;
 
           &.gain {
-            color: #4caf50;
-            background: rgba(76, 175, 80, 0.1);
+            color: #7ee787;
+            background: rgba(126, 231, 135, 0.1);
+            border: 1px solid rgba(126, 231, 135, 0.3);
           }
 
           &.loss {
-            color: #ff6b6b;
-            background: rgba(255, 107, 107, 0.1);
+            color: #f85149;
+            background: rgba(248, 81, 73, 0.1);
+            border: 1px solid rgba(248, 81, 73, 0.3);
           }
         }
       }

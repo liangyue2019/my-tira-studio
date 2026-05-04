@@ -1,49 +1,51 @@
 .day-summary {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 60px 30px;
+  background: #0d1117;
+  padding: 48px 24px;
   display: flex;
   flex-direction: column;
 }
 
 .summary-header {
   text-align: center;
-  margin-bottom: 40px;
+  margin-bottom: 32px;
 
   .summary-icon {
-    font-size: 80px;
+    font-size: 72px;
     display: block;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
   }
 
   .summary-title {
-    font-size: 44px;
-    color: #fff;
+    font-size: 38px;
+    color: #d2a8ff;
     font-weight: bold;
+    letter-spacing: 2px;
   }
 }
 
 .summary-body {
   flex: 1;
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 24px;
-  padding: 30px;
-  margin-bottom: 30px;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 4px;
+  padding: 24px;
+  margin-bottom: 24px;
 }
 
 .summary-section {
-  padding: 16px 0;
-  border-bottom: 1px solid #f0f0f0;
+  padding: 14px 0;
+  border-bottom: 1px solid #21262d;
 
   &:last-child {
     border-bottom: none;
   }
 
   .section-label {
-    font-size: 28px;
-    color: #333;
+    font-size: 26px;
+    color: #8b949e;
     font-weight: bold;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
     display: block;
   }
 }
@@ -51,23 +53,23 @@
 .action-result {
   display: flex;
   justify-content: space-between;
-  padding: 10px 0;
+  padding: 8px 0;
 
   .action-slot {
-    font-size: 24px;
-    color: #888;
+    font-size: 22px;
+    color: #8b949e;
   }
 
   .action-name {
-    font-size: 24px;
-    color: #333;
+    font-size: 22px;
+    color: #c9d1d9;
     font-weight: 500;
   }
 }
 
 .empty-text {
-  font-size: 24px;
-  color: #999;
+  font-size: 22px;
+  color: #484f58;
   font-style: italic;
 }
 
@@ -75,24 +77,26 @@
 .expense-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 12px;
 
   .income-item {
-    font-size: 26px;
-    color: #4caf50;
+    font-size: 24px;
+    color: #7ee787;
     font-weight: 500;
-    background: rgba(76, 175, 80, 0.1);
-    padding: 8px 16px;
-    border-radius: 8px;
+    background: rgba(126, 231, 135, 0.1);
+    border: 1px solid rgba(126, 231, 135, 0.3);
+    padding: 6px 14px;
+    border-radius: 2px;
   }
 
   .expense-item {
-    font-size: 26px;
-    color: #ff6b6b;
+    font-size: 24px;
+    color: #f85149;
     font-weight: 500;
-    background: rgba(255, 107, 107, 0.1);
-    padding: 8px 16px;
-    border-radius: 8px;
+    background: rgba(248, 81, 73, 0.1);
+    border: 1px solid rgba(248, 81, 73, 0.3);
+    padding: 6px 14px;
+    border-radius: 2px;
   }
 }
 
@@ -100,40 +104,40 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 0;
+  padding: 8px 0;
 
   .deadline-name {
-    font-size: 24px;
-    color: #333;
+    font-size: 22px;
+    color: #c9d1d9;
     font-weight: 500;
   }
 
   .deadline-status {
-    font-size: 22px;
+    font-size: 20px;
     font-weight: 500;
 
     &.warning {
-      color: #ff9800;
+      color: #d29922;
     }
 
     &.failed {
-      color: #ff4d4f;
+      color: #f85149;
     }
   }
 
   &.failed {
     .deadline-name {
       text-decoration: line-through;
-      color: #999;
+      color: #484f58;
     }
   }
 }
 
 .summary-message {
-  font-size: 24px;
-  color: #666;
+  font-size: 22px;
+  color: #8b949e;
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 
   &:last-child {
     margin-bottom: 0;
@@ -142,21 +146,23 @@
 
 .summary-footer {
   .next-day-btn {
-    background: #fff;
-    border-radius: 50px;
-    padding: 28px;
+    background: #161b22;
+    border: 1px solid #d2a8ff;
+    border-radius: 4px;
+    padding: 24px;
     text-align: center;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
     cursor: pointer;
 
     &:active {
-      transform: scale(0.97);
+      background: #0d1117;
+      box-shadow: 0 0 16px rgba(210, 168, 255, 0.3);
     }
 
     .next-day-text {
-      font-size: 32px;
-      color: #667eea;
+      font-size: 28px;
+      color: #d2a8ff;
       font-weight: bold;
+      letter-spacing: 1px;
     }
   }
 }

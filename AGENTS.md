@@ -3,151 +3,246 @@
 ## 项目概述
 
 **项目名称**: my-tira-studio  
-**项目类型**: 模拟经营游戏（AI 工作室主题）  
+**项目类型**: 模拟经营游戏（AI 工作室主题），回合制时间系统  
 **技术栈**: Taro 4.0.9 + React 18 + TypeScript + Zustand  
 **目标平台**: H5、微信小程序、支付宝小程序等多端  
 **开发状态**: 开发中
 
 ## 核心游戏机制
 
-### 1. 资源系统
+游戏采用回合制时间系统，每天分为早上、下午、晚上三个时段。玩家在每个时段选择一个行动，晚上结束后进行日终结算，进入下一天。
+
+### 1. 时间系统
+- **时段（TimeSlot）**: `morning` / `afternoon` / `evening`
+- **游戏阶段（GamePhase）**: `action_select` / `settlement` / `day_summary` / `event`
+- **流程**: 选择行动 → 时段结算 → 推进时段 → 晚上后日终结算 → 进入新一天
+
+### 2. 资源系统
 玩家管理四种核心资源：
-- **gold（金币）**: 用于抽卡、购买道具
-- **power（体力）**: 执行任务消耗
-- **reputation（声望）**: 解锁剧情和成就
+- **gold（金币）**: 用于招募、培训、交易
+- **power（体力）**: 执行行动消耗
+- **reputation（声望）**: 解锁剧情，通过社交/项目获得
 - **exp（经验）**: 提升等级
 
 初始资源：gold: 1000, power: 10, reputation: 0, exp: 0
 
-### 2. 员工系统
+### 3. 行动系统
+每个时段玩家从可用行动中选择一个执行：
+
+| 行动 | 可用时段 | 消耗 | 效果 |
+|------|----------|------|------|
+| 推进项目 | 早/午/晚 | 体力5 | 项目进度+1时段 |
+| 招募员工 | 早/午 | 金币100 | 抽卡获得1名员工 |
+| 培训员工 | 下午 | 金币50+体力3 | 员工随机属性+3，经验+30 |
+| 休息 | 早/午/晚 | 无 | 体力+5 |
+| 探索 | 早上 | 体力3 | 随机金币/声望/体力，可能触发事件 |
+| 交易 | 下午 | 金币/声望 | 金币↔声望兑换（10:1） |
+| 社交 | 晚上 | 体力2 | 声望+3~8（含沟通加成） |
+
+### 4. 员工系统
 - **品质等级**: 传说 (5) > 史诗 (4) > 稀有 (3) > 优秀 (2) > 普通 (1)
 - **颜色标识**: 金、紫、红、蓝、白
-- **四维属性**: 
-  - coding（编程能力）
-  - design（设计能力）
-  - communication（沟通能力）
-  - efficiency（效率）
-- **员工获取**: 通过抽卡（gacha）系统获得，消耗 100 金币/次
-- **初始员工**: 白夜 tira（固定初始角色）
+- **四维属性**: coding / design / communication / efficiency
+- **状态机**: idle / working / training / exploring / resting / socializing
+- **员工获取**: 招募行动（抽卡），消耗 100 金币
+- **初始员工**: 白夜 tira（固定，稀有度2）
 
-### 3. 项目系统
-- 项目有难度等级（1-5），影响需求倍数和奖励
-- 项目需要分配员工完成，根据员工能力总和与项目需求对比
-- 完成项目获得金币、声望、经验奖励
-- 初始生成 2 个简单难度项目
+### 5. 项目系统（时段制）
+- 项目以**时段（slots）**为进度单位，而非秒数
+- `totalSlots` = 完成所需的总时段数
+- `slotsSpent` = 已投入的时段数
+- `deadline` = 截止天数（超过则项目失败）
+- 每时段推进量 = 基础(1) × 员工效率修正 × 技能匹配修正
+- 每天早上自动刷新 2~3 个可用项目
+- 难度随天数递增
 
-### 4. 剧情系统
-- 剧情章节（StoryChapter）根据声望、金币、员工数量解锁
+### 6. 事件系统
+- **稀有度**: common / rare / epic / legendary
+- **触发时机**: 探索行动（80%）、时段结算（20%）、日终结算（50%）
+- 每个事件有多个选项，不同选项有不同奖励/惩罚
+- 部分选项需要特定品质/属性的员工才能选择
+
+### 7. 剧情系统
+- 剧情章节根据声望、金币、员工数、天数解锁
 - 包含已读/未读状态管理
+- 解锁条件包含 day 字段（运营天数）
 
-### 5. 成就系统
-- 成就条件类型：gold、reputation、employees、projects、level
-- 解锁成就获得资源奖励
-- 自动检测成就解锁条件
+### 8. 对话系统
+- 对话触发条件：employees / gold / reputation / projects / level / day / custom
+- 每次只触发一个对话，不会同时弹出多个
+- 支持链式对话（nextDialogId）
 
-### 6. 存档系统
-- 使用 localStorage 保存游戏进度
+### 9. 存档系统
+- 使用 localStorage 保存游戏进度（key: `ai_studio_game_save`）
 - 自动保存间隔：30 秒
-- 保存内容：资源、员工、项目、成就、剧情状态
+- 保存内容：天数/时段/阶段、资源、员工、项目、剧情状态、对话状态、行动日志
 
 ## 项目结构
 
 ```
 src/
-├── constants/          # 常量配置
-│   ├── achievements.ts # 成就定义
-│   ├── config.ts       # 游戏配置（抽卡概率、资源生成等）
-│   ├── projects.ts     # 项目模板
-│   └── story.ts        # 剧情章节
-├── pages/              # 页面组件
-│   ├── achievement/    # 成就页面
-│   ├── employee/       # 员工管理页面
-│   ├── index/          # 主页面
-│   ├── project/        # 项目管理页面
-│   ├── shop/           # 商店/抽卡页面
-│   └── story/          # 剧情页面
-├── services/           # 服务层
-│   └── gameLoop.ts     # 游戏循环逻辑
-├── stores/             # 状态管理（Zustand）
-│   ├── employee.ts     # 员工状态
-│   ├── game.ts         # 游戏全局状态
-│   ├── project.ts      # 项目状态
-│   └── resource.ts     # 资源状态
-├── types/              # TypeScript 类型定义
-│   └── index.ts        # 所有类型定义
-└── utils/              # 工具函数
-    ├── format.ts       # 格式化函数
-    ├── random.ts       # 随机数生成
-    └── time.ts         # 时间处理
+├── components/          # 组件
+│   ├── DaySummaryView   # 日终报告组件
+│   ├── DialogModal      # 对话弹窗组件
+│   ├── EventModal       # 事件弹窗组件
+│   └── SettlementView   # 时段结算组件
+├── constants/           # 常量配置
+│   ├── actions.ts       # 行动定义（7种行动及可用时段）
+│   ├── config.ts        # 游戏配置（抽卡概率、行动消耗、技能匹配等）
+│   ├── dialogs.ts       # 对话事件定义
+│   ├── events.ts        # 随机事件定义（8个事件）
+│   ├── projects.ts      # 项目模板（5种）+ 难度倍数 + 客户名
+│   └── story.ts         # 剧情章节（6章）
+├── pages/               # 页面组件
+│   ├── index/           # 主页面（行动选择 + 时间指示器）
+│   ├── employee/        # 员工管理页面
+│   ├── project/         # 项目管理页面
+│   ├── shop/            # 商店/抽卡页面
+│   └── story/           # 剧情页面
+├── stores/              # 状态管理（Zustand）
+│   ├── employee.ts      # 员工状态（含状态机）
+│   ├── event.ts         # 事件状态
+│   ├── game.ts          # 游戏全局状态（时间/时段/存档/对话）
+│   ├── project.ts       # 项目状态（时段制）
+│   ├── resource.ts      # 资源状态
+│   └── settlement.ts    # 结算逻辑（行动执行 + 日终结算）
+├── types/               # TypeScript 类型定义
+│   └── index.ts         # 所有类型定义 + 常量映射
+└── utils/               # 工具函数
+    ├── format.ts        # 数字格式化
+    ├── random.ts        # 随机数/UUID
+    └── time.ts          # 时间处理
 ```
 
 ## 状态管理架构
 
 ### Store 依赖关系
 ```
-useGameStore (游戏主状态)
+useGameStore (游戏主状态：时间/阶段/存档/对话)
 ├── useResourceStore (资源状态)
-├── useEmployeeStore (员工状态)
-└── useProjectStore (项目状态)
+├── useEmployeeStore (员工状态 + 状态机)
+├── useProjectStore (项目状态：时段制)
+├── useEventStore (事件状态)
+└── settlement.ts (结算逻辑，非 store，被 gameStore 调用)
 ```
 
 ### 各 Store 职责
 
 #### useGameStore
-- 游戏初始化、加载、保存
+- 时间管理：天数、时段、游戏阶段
+- 行动选择与时段推进
+- 日终结算触发
+- 存档加载/保存/重置
+- 对话触发与选项处理
 - 剧情章节更新
-- 成就解锁检测
-- 首次启动标记
 
 #### useResourceStore
-- 资源增减操作
-- 资源消费检查
+- 资源增减操作（addGold/spendGold 等）
+- 批量资源操作（addResources/deductResources/canAfford）
 
 #### useEmployeeStore
 - 员工 CRUD
+- 员工状态机管理（setEmployeeStatus/resetEmployeeStatus）
 - 抽卡逻辑（gacha）
-- 员工生成（按稀有度）
+- 员工生成（按稀有度/颜色）
 - 初始员工生成
 
 #### useProjectStore
-- 项目 CRUD
-- 项目完成处理
-- 可用项目生成
+- 项目 CRUD（时段制：totalSlots/slotsSpent）
+- 员工分配/移除（双向同步）
+- 项目完成/失败处理
+- 进度推进（addProgress）
+- 可用项目生成与刷新
 - 初始项目生成
+
+#### useEventStore
+- 事件触发判定（探索/日终）
+- 事件选项解决（发放奖励/惩罚）
+- 事件条件检查
+
+#### settlement.ts（纯函数，非 Store）
+- executeAction() — 执行行动并返回结算结果
+- settleDay() — 日终结算（薪资、体力恢复、deadline检查、项目刷新）
 
 ## 关键配置数据
 
-### 抽卡概率 (GAME_CONFIG)
+### 抽卡概率
 ```typescript
-gachaRates: {
-  5: 0.02,  // 传说
-  4: 0.08,  // 史诗
-  3: 0.20,  // 稀有
-  2: 0.30,  // 优秀
-  1: 0.40   // 普通
-}
+gachaRates: { 5: 0.02, 4: 0.08, 3: 0.20, 2: 0.30, 1: 0.40 }
 ```
 
 ### 颜色概率
 ```typescript
-colorRates: {
-  '金': 0.05,
-  '紫': 0.10,
-  '红': 0.20,
-  '蓝': 0.35,
-  '白': 0.30
-}
+colorRates: { '金': 0.05, '紫': 0.10, '红': 0.20, '蓝': 0.35, '白': 0.30 }
 ```
 
 ### 项目难度倍数
 ```typescript
-PROJECT_DIFFICULTY: {
-  1: 1.0,   // 简单
-  2: 1.5,   // 普通
-  3: 2.0,   // 困难
-  4: 3.0,   // 专家
-  5: 5.0    // 传奇
+PROJECT_DIFFICULTY: { 1: 1.0, 2: 1.5, 3: 2.0, 4: 3.0, 5: 5.0 }
+```
+
+### 行动消耗
+```typescript
+actionCosts: {
+  work_project: { power: 5 },
+  recruit: { gold: 100 },
+  train: { gold: 50, power: 3 },
+  rest: {},
+  explore: { power: 3 },
+  trade: {},
+  social: { power: 2 }
 }
+```
+
+### 技能匹配
+- 匹配阈值：60%（员工能力 >= 项目需求 × 0.6）
+- 最低匹配项数：2/3
+- 匹配成功效率：1.0×
+- 匹配失败效率：0.3×
+
+## 数据流
+
+### 每日流程
+```
+1. 新一天开始（早上）
+2. 玩家看到可用行动列表（根据时段过滤）
+3. 玩家选择行动 → selectAction()
+4. executeAction() 执行行动 → 返回 SettlementResult
+5. 显示结算界面 → 玩家点击"继续"
+6. advanceTimeSlot() → 早上→下午→晚上
+7. 晚上"继续" → settleDayEnd()
+   - 支付员工日薪
+   - 体力自然恢复
+   - 检查项目 deadline（超时则失败）
+   - 清理已完成/失败项目
+   - 可能触发日终事件
+   - 刷新可用项目
+   - 重置所有员工状态为 idle
+   - 自动保存
+8. 显示日终报告 → 玩家点击"进入新一天"
+9. day+1, timeSlot='morning', 回到步骤2
+```
+
+### 项目流程
+```
+1. 每天早上 refreshAvailableProjects() 生成 2~3 个可用项目
+2. 玩家在项目页面点击"接受项目" → addProject()
+3. 玩家在项目页面分配员工 → assignEmployee() + updateEmployee()
+4. 玩家在主页选择"推进项目"行动 → settleWorkProject()
+5. 计算总推进量 → addProgress()
+6. 项目完成 → completeProject() 发放奖励 + 重置员工
+7. 项目超时 → failProject() + 重置员工
+```
+
+### 事件流程
+```
+1. 探索/日终结算时 → tryTriggerExploreEvent() / tryTriggerDayEvent()
+2. 检查事件条件 → checkEventCondition()
+3. 按稀有度加权随机选择事件
+4. 设置 currentEvent → phase='event'
+5. EventModal 显示事件和选项
+6. 玩家选择 → resolveEvent() → 发放奖励/惩罚
+7. 事件标记为已触发
 ```
 
 ## 开发规范
@@ -156,7 +251,7 @@ PROJECT_DIFFICULTY: {
 - 使用 TypeScript 严格模式
 - 函数组件 + React Hooks
 - Zustand 进行状态管理
-- Less 样式预处理
+- SCSS 样式预处理
 
 ### 命名约定
 - 类型：PascalCase (interface, type)
@@ -164,53 +259,16 @@ PROJECT_DIFFICULTY: {
 - 常量：UPPER_SNAKE_CASE
 - 文件：kebab-case 或 camelCase
 
-### 状态更新模式
-所有 Zustand store 的 `set()` 调用需要使用 `as Partial<StateType>` 类型断言：
-
-```typescript
-// ✅ 正确
-set({ key: value } as Partial<GameState>)
-
-// ❌ 错误
-set({ key: value })
-```
-
 ### Store 接口定义
-所有 store 方法必须在 interface 中声明：
-
-```typescript
-interface EmployeeState {
-  employees: Employee[]
-  addEmployee: (employee: Employee) => void
-  generateEmployee: (rarity?: number) => Employee
-  generateInitialEmployee: () => void  // 必须声明
-}
-```
-
-## 常见问题与解决方案
-
-### 1. Zustand 类型错误
-**问题**: `set()` 调用时类型不匹配  
-**解决**: 使用 `as Partial<StateType>` 断言
-
-### 2. Store 方法未定义
-**问题**: `Property 'xxx' does not exist on type 'State'`  
-**解决**: 在 store 的 interface 中添加方法声明
-
-### 3. 未使用变量警告
-**问题**: TypeScript 报错未使用变量  
-**解决**: 
-- 删除未使用的导入/变量
-- 对于必需但未使用的参数，使用前缀 `_`（如 `_rarity`）
-
-### 4. GameState 缺少属性
-**问题**: store 初始化对象缺少 GameState 定义的属性  
-**解决**: 在 create<GameState>() 的初始对象中包含所有必需属性
+所有 store 方法必须在 interface 中声明。
 
 ## 开发命令
 
 ```bash
-# H5 开发
+# H5 开发（推荐使用 npx）
+npx taro build --type h5 --watch
+
+# H5 开发（pnpm）
 pnpm dev:h5
 
 # 微信小程序开发
@@ -223,70 +281,19 @@ pnpm build:h5
 pnpm build:weapp
 ```
 
-## 数据流示例
+## 重要注意事项
 
-### 新项目流程
-1. `useProjectStore.generateAvailableProject()` 生成项目
-2. 项目添加到 `availableProjects` 数组
-3. 玩家在项目页面查看并选择项目
-4. 分配员工到项目（`assignEmployeeToProject`）
-5. 游戏循环处理项目进度
-6. 项目完成（`completeProject`）
-7. 发放奖励（调用 `useResourceStore.addGold/Reputation/Exp`）
-
-### 抽卡流程
-1. 检查金币是否足够（100 金币）
-2. `useResourceStore.spendGold(100)` 消耗金币
-3. `useEmployeeStore.gacha()` 执行抽卡
-4. 根据概率计算稀有度和颜色
-5. 生成员工并添加到员工列表
-6. 返回抽卡结果（包含是否为新角色）
+1. **跨端兼容性**: 使用 Taro API（如 showModal），避免直接使用浏览器 API（localStorage 除外）
+2. **存档兼容性**: 修改数据结构时需考虑旧存档兼容，必要时在 loadGame 中做迁移
+3. **员工状态同步**: 分配/移除员工时需同时更新 projectStore 和 employeeStore
+4. **时段制设计**: 项目进度以时段为单位，不再使用秒数/实时循环
+5. **结算逻辑集中**: 所有行动执行和日终结算逻辑在 settlement.ts 中
 
 ## 待开发功能
 
-- [ ] 离线收益计算
-- [ ] 体力自动恢复（每 60 秒恢复 1 点）
-- [ ] 员工升级系统
-- [ ] 项目进度可视化
-- [ ] 成就解锁通知
-- [ ] 剧情阅读界面
+- [ ] 员工升级系统（level/exp 已定义，培训增加经验，但无升级逻辑）
+- [ ] 培训行动选择具体员工（当前自动选择第一个空闲员工）
+- [ ] 推进项目行动选择具体项目（当前自动选择第一个活跃项目）
+- [ ] 交易行动 UI（当前只有基础逻辑，无交互界面）
+- [ ] 项目分配员工优化（从项目页分配后需同步回主页显示）
 - [ ] 设置界面（音效、存档管理等）
-
-## 重要注意事项
-
-1. **跨端兼容性**: 使用 Taro API，避免直接使用浏览器 API
-2. **性能优化**: 大量员工/项目时注意渲染性能
-3. **存档兼容性**: 修改数据结构时需考虑旧存档兼容
-4. **概率验证**: 抽卡概率需要前端验证和后端校验（上线时）
-5. **状态同步**: 多个 store 之间的状态变更需要保持一致性
-
-## 最近修复（2026-03-04）
-
-### 2026-03-04 修复
-- ✅ 修复员工分配到工作的问题
-  - 修改 `assignEmployeeToProject` 方法，确保同时更新员工的 `assignedProjectId` 和 `isWorking` 状态
-  - 修改 `removeEmployeeFromProject` 方法，确保员工从项目移除时正确重置状态
-  - 修改 `completeProject` 方法，确保项目完成时重置所有分配员工的状态
-  - 添加 `useEmployeeStore` 导入到 project.ts 文件
-
-### 2026-03-02 修复
-已修复的类型错误：
-- ✅ 移除未使用的 `Resources` 导入
-- ✅ 添加缺失的 store 属性（employees, projects, achievements, storyChapters）
-- ✅ 所有 `set()` 调用添加类型断言
-- ✅ 修复方法调用名称（generateInitialEmployee）
-- ✅ 更新 store 接口定义（添加 generateInitialProjects, generateInitialEmployee）
-- ✅ 修复未使用参数警告（calculateColor 函数的 _rarity）
-- ✅ 移除 project.ts 中未使用的 Employee 导入
-
-所有 store 文件现在通过 TypeScript 类型检查，无编译错误。
-
-## 联系与协作
-
-当在新设备上打开此项目时：
-1. 首先阅读此文档了解项目整体架构
-2. 查看 `src/types/index.ts` 了解所有数据类型
-3. 查看 `src/constants/config.ts` 了解游戏配置
-4. 运行 `pnpm install` 安装依赖
-5. 运行 `pnpm dev:h5` 启动开发服务器
-6. 如有类型错误，运行 `npx tsc --noEmit` 检查
