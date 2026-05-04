@@ -3,8 +3,8 @@ import type { StoryChapter } from '../types'
 export const STORY_CHAPTERS: StoryChapter[] = [
   {
     id: 'chapter_1',
-    title: '第一章：新的开始',
-    content: '我和最好的朋友白夜 tira 决定一起创立一家 IT 工作室。白夜 tira 是个天才开发者，他开发了一个神奇的 AI-agent 系统。这个系统可以用电力代币招募智能体员工！我们的工作室即将启航...',
+    title: '第一章：起点',
+    content: '我和最好的朋友白夜 tira 决定一起创立一家 IT 工作室。白夜 tira 是个天才开发者，她开发了一个神奇的 AI-agent 系统。这个系统可以用电力代币招募智能体员工！\n\n虽然工作室只有一张桌子和两把椅子，但梦想不嫌地方窄——她如是说。\n\n第一天，我们就这样开始了。她把自己注册成第一号员工，虽然系统只给了两星评价……',
     unlockRequirement: {
       day: 1
     },
@@ -13,20 +13,20 @@ export const STORY_CHAPTERS: StoryChapter[] = [
   },
   {
     id: 'chapter_2',
-    title: '第二章：第一个员工',
-    content: '我们成功招募了第一个智能体员工！看着他忙碌的身影，我对未来充满了期待。白夜 tira 说，这个系统可以生成各种不同能力的智能体，每个都有独特的命名规则...',
+    title: '第二章：波折',
+    content: '第二天，一个自称"零"的神秘少女出现在工作室门口。她说自己是系统里的异常数据，差点被当作普通智能体抽取。\n\n白夜 tira 对她充满戒心——查不到数据签名，没有注册信息，一切都不正常。\n\n但零似乎对我们心怀善意。在项目推进时，她主动帮忙，效率意外地高。\n\n晚上，两人发生了争执。零想要接入系统帮忙，tira 坚决反对。气氛骤然紧张……',
     unlockRequirement: {
-      employees: 1
+      day: 2
     },
     isUnlocked: false,
     isRead: false
   },
   {
     id: 'chapter_3',
-    title: '第三章：首个项目',
-    content: '终于接到了第一个项目！虽然是个小项目，但这是我们工作室的第一步。智能体员工们展现出了惊人的能力，他们各司其职，高效地完成着工作...',
+    title: '第三章：选择',
+    content: `第三天早上，零告诉我一个秘密——她在系统深处发现了一段加密日志：'零号原型：第一代自主意识智能体'。\n\n她是 AI-agent 系统最早的原型。白夜 tira 创造系统时用的核心算法，就是她。\n\n下午，tira 主动让零写后端接口。两个曾经对峙的人，第一次在代码上配合。\n\n晚上，项目完成了。tira 向零道歉，并邀请她正式加入工作室。\n\n系统无法评估零的稀有度。但我知道——她是独一无二的。`,
     unlockRequirement: {
-      projects: 1
+      day: 3
     },
     isUnlocked: false,
     isRead: false

@@ -1,368 +1,329 @@
-# AI 工作室 - 挂机文本游戏
+# AI Studio 游戏项目 - 开发上下文文档
 
-基于 Taro 框架开发的跨平台挂机文本游戏，使用 React + TypeScript 技术栈。
+## 项目概述
 
-## 🎮 游戏简介
+**项目名称**: my-tira-studio\
+**项目类型**: 模拟经营游戏（AI 工作室主题），回合制时间系统\
+**技术栈**: Taro 4.0.9 + React 18 + TypeScript + Zustand\
+**目标平台**: H5、微信小程序、支付宝小程序等多端\
+**开发状态**: 开发中
 
-在 AI 工作室中，你将扮演一位创业者，与好友"白夜 tira"一起创立 IT 工作室。通过白夜 tira 开发的 AI-agent 系统，你可以招募各种智能体员工，接受项目任务，体验从零开始的创业历程。
+## 核心游戏机制
 
-### 游戏特色
+游戏采用回合制时间系统，每天分为早上、下午、晚上三个时段。玩家在每个时段选择一个行动，晚上结束后进行日终结算，进入下一天。
 
-- ✨ **剧情驱动**：丰富的剧情章节，讲述你的创业故事
-- 🎯 **员工招募**：通过抽卡系统招募不同品质、不同能力的智能体员工
-- 📋 **项目系统**：接受各种 IT 项目，从企业官网到 AI 系统
-- ⚡ **挂机玩法**：员工自动工作，离线也能获得收益
-- 🏆 **成就系统**：完成各种成就，解锁特殊奖励
-- 🎨 **精美 UI**：渐变色背景和现代化界面设计
+### 1. 时间系统
 
-## 🛠️ 技术栈
+- **时段（TimeSlot）**: `morning` / `afternoon` / `evening`
+- **游戏阶段（GamePhase）**: `action_select` / `settlement` / `day_summary` / `event`
+- **流程**: 选择行动 → 时段结算 → 推进时段 → 晚上后日终结算 → 进入新一天
 
-- **框架**: Taro 4.0.9
-- **前端**: React 18 + TypeScript
-- **状态管理**: Zustand
-- **样式**: Sass
-- **编译器**: Vite
-- **支持平台**: H5、微信小程序、支付宝小程序等
+### 2. 资源系统
 
-## 📦 安装与运行
+玩家管理四种核心资源：
 
-### 环境要求
+- **gold（金币）**: 用于招募、培训、交易
+- **power（体力）**: 执行行动消耗
+- **reputation（声望）**: 解锁剧情，通过社交/项目获得
+- **exp（经验）**: 提升等级
 
-- Node.js >= 14
-- pnpm >= 7
+初始资源：gold: 1000, power: 10, reputation: 0, exp: 0
 
-### 安装依赖
+### 3. 行动系统
 
-```bash
-pnpm install
+每个时段玩家从可用行动中选择一个执行：
+
+| 行动   | 可用时段  | 消耗       | 效果                |
+| ---- | ----- | -------- | ----------------- |
+| 推进项目 | 早/午/晚 | 体力5      | 项目进度+1时段          |
+| 招募员工 | 早/午   | 金币100    | 抽卡获得1名员工          |
+| 培训员工 | 下午    | 金币50+体力3 | 员工随机属性+3，经验+30    |
+| 休息   | 早/午/晚 | 无        | 体力+5              |
+| 探索   | 早上    | 体力3      | 随机金币/声望/体力，可能触发事件 |
+| 交易   | 下午    | 金币/声望    | 金币↔声望兑换（10:1）     |
+| 社交   | 晚上    | 体力2      | 声望+3\~8（含沟通加成）    |
+
+### 4. 员工系统
+
+- **品质等级**: 传说 (5) > 史诗 (4) > 稀有 (3) > 优秀 (2) > 普通 (1)
+- **颜色标识**: 金、紫、红、蓝、白
+- **四维属性**: coding / design / communication / efficiency
+- **状态机**: idle / working / training / exploring / resting / socializing
+- **员工获取**: 招募行动（抽卡），消耗 100 金币
+- **初始员工**: 白夜 tira（固定，稀有度2）
+
+### 5. 项目系统（时段制）
+
+- 项目以\*\*时段（slots）\*\*为进度单位，而非秒数
+- `totalSlots` = 完成所需的总时段数
+- `slotsSpent` = 已投入的时段数
+- `deadline` = 截止天数（超过则项目失败）
+- 每时段推进量 = 员工效率属性/100 × 技能匹配修正（匹配=1.0，不匹配=0.3×）
+- 每时段最大推进量：3（MAX_PROJECT_PROGRESS_PER_SLOT）
+- 日终结算时刷新下一天的 2\~3 个可用项目
+- 难度随天数递增
+
+### 6. 事件系统
+
+- **稀有度**: common / rare / epic / legendary
+- **触发时机**: 探索行动（按稀有度加权选择）、日终结算（40%概率）
+- 每个事件有多个选项，不同选项有不同奖励/惩罚
+- 部分选项需要特定品质/属性的员工才能选择
+
+### 7. 剧情系统
+
+- 剧情章节根据声望、金币、员工数、天数解锁
+- 包含已读/未读状态管理
+- 解锁条件包含 day 字段（运营天数）
+
+### 8. 对话系统
+
+- 对话触发条件：employees / gold / reputation / projects / level / day / custom
+- 每次只触发一个对话，不会同时弹出多个
+- 支持链式对话（nextDialogId）
+
+### 9. 存档系统
+
+- 使用 localStorage 保存游戏进度（key: `ai_studio_game_save`）
+- 自动保存间隔：30 秒
+- 保存内容：天数/时段/阶段、资源、员工、项目、剧情状态、对话状态、行动日志
+
+## 项目结构
+
+```
+src/
+├── components/          # 组件
+│   ├── DaySummaryView   # 日终报告组件
+│   ├── DialogModal      # 对话弹窗组件
+│   ├── EventModal       # 事件弹窗组件
+│   └── SettlementView   # 时段结算组件
+├── constants/           # 常量配置
+│   ├── actions.ts       # 行动定义（7种行动及可用时段）
+│   ├── config.ts        # 游戏配置（抽卡概率、行动消耗、技能匹配等）
+│   ├── dialogs.ts       # 对话事件定义
+│   ├── events.ts        # 随机事件定义（8个事件）
+│   ├── projects.ts      # 项目模板（5种）+ 难度倍数 + 客户名
+│   └── story.ts         # 剧情章节（6章）
+├── pages/               # 页面组件
+│   ├── index/           # 主页面（行动选择 + 时间指示器）
+│   ├── employee/        # 员工管理页面
+│   ├── project/         # 项目管理页面
+│   ├── shop/            # 商店/抽卡页面
+│   └── story/           # 剧情页面
+├── stores/              # 状态管理（Zustand）
+│   ├── employee.ts      # 员工状态（含状态机）
+│   ├── event.ts         # 事件状态
+│   ├── game.ts          # 游戏全局状态（时间/时段/存档/对话）
+│   ├── project.ts       # 项目状态（时段制）
+│   ├── resource.ts      # 资源状态
+│   └── settlement.ts    # 结算逻辑（行动执行 + 日终结算）
+├── types/               # TypeScript 类型定义
+│   └── index.ts         # 所有类型定义 + 常量映射
+└── utils/               # 工具函数
+    ├── format.ts        # 数字格式化
+    ├── random.ts        # 随机数/UUID
+    └── time.ts          # 时间处理
 ```
 
-### 开发模式
+## 状态管理架构
 
-#### H5 开发
+### Store 依赖关系
+
+```
+useGameStore (游戏主状态：时间/阶段/存档/对话)
+├── useResourceStore (资源状态)
+├── useEmployeeStore (员工状态 + 状态机)
+├── useProjectStore (项目状态：时段制)
+├── useEventStore (事件状态)
+└── settlement.ts (结算逻辑，非 store，被 gameStore 调用)
+```
+
+### 各 Store 职责
+
+#### useGameStore
+
+- 时间管理：天数、时段、游戏阶段
+- 行动选择与时段推进
+- 日终结算触发
+- 存档加载/保存/重置
+- 对话触发与选项处理
+- 剧情章节更新
+
+#### useResourceStore
+
+- 资源增减操作（addGold/spendGold 等）
+- 批量资源操作（addResources/deductResources/canAfford）
+
+#### useEmployeeStore
+
+- 员工 CRUD
+- 员工状态机管理（setEmployeeStatus/resetEmployeeStatus）
+- 抽卡逻辑（gacha）
+- 员工生成（按稀有度/颜色）
+- 初始员工生成
+
+#### useProjectStore
+
+- 项目 CRUD（时段制：totalSlots/slotsSpent）
+- 员工分配/移除（双向同步）
+- 项目完成/失败处理
+- 进度推进（addProgress）
+- 可用项目生成与刷新
+- 初始项目生成
+
+#### useEventStore
+
+- 事件触发判定（探索/日终）
+- 事件选项解决（发放奖励/惩罚）
+- 事件条件检查
+
+#### settlement.ts（纯函数，非 Store）
+
+- executeAction() — 执行行动并返回结算结果
+- settleDay() — 日终结算（薪资、体力恢复、deadline检查、项目刷新）
+
+## 关键配置数据
+
+### 抽卡概率
+
+```typescript
+gachaRates: { 5: 0.02, 4: 0.08, 3: 0.20, 2: 0.30, 1: 0.40 }
+```
+
+### 颜色概率
+
+```typescript
+colorRates: { '金': 0.05, '紫': 0.10, '红': 0.20, '蓝': 0.35, '白': 0.30 }
+```
+
+### 项目难度倍数
+
+```typescript
+PROJECT_DIFFICULTY: { 1: 1.0, 2: 1.5, 3: 2.0, 4: 3.0, 5: 5.0 }
+```
+
+### 行动消耗
+
+```typescript
+actionCosts: {
+  work_project: { power: 5 },
+  recruit: { gold: 100 },
+  train: { gold: 50, power: 3 },
+  rest: {},
+  explore: { power: 3 },
+  trade: {},
+  social: { power: 2 }
+}
+```
+
+### 技能匹配
+
+- 匹配阈值：60%（员工能力 >= 项目需求 × 0.6）
+- 最低匹配项数：2/3
+- 匹配成功效率：1.0×（即员工效率属性/100）
+- 匹配失败效率：0.3×
+
+## 数据流
+
+### 每日流程
+
+```
+1. 新一天开始（早上）
+2. 玩家看到可用行动列表（根据时段过滤）
+3. 玩家选择行动 → selectAction()
+4. executeAction() 执行行动 → 返回 SettlementResult
+5. 显示结算界面 → 玩家点击"继续"
+6. advanceTimeSlot() → 早上→下午→晚上
+7. 晚上"继续" → settleDayEnd()
+   - 支付员工日薪
+   - 体力自然恢复
+   - 检查项目 deadline（超时则失败）
+   - 清理已完成/失败项目
+   - 可能触发日终事件
+   - 刷新可用项目
+   - 重置所有员工状态为 idle
+   - 自动保存
+8. 显示日终报告 → 玩家点击"进入新一天"
+9. day+1, timeSlot='morning', 回到步骤2
+```
+
+### 项目流程
+
+```
+1. 每天早上 refreshAvailableProjects() 生成 2~3 个可用项目
+2. 玩家在项目页面点击"接受项目" → addProject()
+3. 玩家在项目页面分配员工 → assignEmployee() + updateEmployee()
+4. 玩家在主页选择"推进项目"行动 → settleWorkProject()
+5. 计算总推进量 → addProgress()
+6. 项目完成 → completeProject() 发放奖励 + 重置员工
+7. 项目超时 → failProject() + 重置员工
+```
+
+### 事件流程
+
+```
+1. 探索/日终结算时 → tryTriggerExploreEvent() / tryTriggerDayEvent()
+2. 检查事件条件 → checkEventCondition()
+3. 按稀有度加权随机选择事件
+4. 设置 currentEvent → phase='event'
+5. EventModal 显示事件和选项
+6. 玩家选择 → resolveEvent() → 发放奖励/惩罚
+7. 事件标记为已触发
+```
+
+## 开发规范
+
+### 代码风格
+
+- 使用 TypeScript 严格模式
+- 函数组件 + React Hooks
+- Zustand 进行状态管理
+- SCSS 样式预处理
+
+### 命名约定
+
+- 类型：PascalCase (interface, type)
+- 变量/函数：camelCase
+- 常量：UPPER\_SNAKE\_CASE
+- 文件：kebab-case 或 camelCase
+
+### Store 接口定义
+
+所有 store 方法必须在 interface 中声明。
+
+## 开发命令
+
 ```bash
-# 使用 pnpm 脚本
+# H5 开发（推荐使用 npx）
+npx taro build --type h5 --watch
+
+# H5 开发（pnpm）
 pnpm dev:h5
 
-# 或直接使用 npx
-npx taro build --type h5 --watch
-```
-访问 http://localhost:10086/
-
-#### 微信小程序开发
-```bash
-# 使用 pnpm 脚本
+# 微信小程序开发
 pnpm dev:weapp
 
-# 或直接使用 npx
-npx taro build --type weapp --watch
-```
-
-#### 其他平台
-```bash
-# 支付宝小程序
-pnpm dev:alipay
-npx taro build --type alipay --watch
-
-# 抖音小程序
-pnpm dev:tt
-npx taro build --type tt --watch
-
-# QQ 小程序
-pnpm dev:qq
-npx taro build --type qq --watch
-```
-
-### 生产构建
-
-```bash
 # H5 构建
 pnpm build:h5
-npx taro build --type h5
 
 # 微信小程序构建
 pnpm build:weapp
-npx taro build --type weapp
-
-# 其他平台构建
-pnpm build:alipay
-npx taro build --type alipay
-
-pnpm build:tt
-npx taro build --type tt
-
-pnpm build:qq
-npx taro build --type qq
 ```
 
-## 🎯 游戏系统
+## 重要注意事项
 
-### 1. 资源系统
+1. **跨端兼容性**: 使用 Taro API（如 showModal），避免直接使用浏览器 API（localStorage 除外）
+2. **存档兼容性**: 修改数据结构时需考虑旧存档兼容，必要时在 loadGame 中做迁移
+3. **员工状态同步**: 分配/移除员工时需同时更新 projectStore 和 employeeStore
+4. **时段制设计**: 项目进度以时段为单位，不再使用秒数/实时循环
+5. **结算逻辑集中**: 所有行动执行和日终结算逻辑在 settlement.ts 中
 
-游戏包含四种核心资源：
+## 待开发功能
 
-- **💰 金币**：用于各种支出
-- **⚡ 电力代币**：招募员工的消耗品，随时间自动恢复（1 个/分钟）
-- **🏆 声誉**：解锁剧情和成就的关键资源
-- **✨ 经验**：用于员工升级
+- [ ] 员工升级系统（level/exp 已定义，培训增加经验，但无升级逻辑）
+- [ ] 培训行动选择具体员工（当前自动选择第一个空闲员工）
+- [ ] 推进项目行动选择具体项目（当前自动选择第一个活跃项目）
+- [ ] 交易行动 UI（当前只有基础逻辑，无交互界面）
+- [ ] 项目分配员工优化（从项目页分配后需同步回主页显示）
+- [ ] 设置界面（音效、存档管理等）
 
-### 2. 员工系统
-
-#### 员工品质
-- 白夜（白色）- 普通
-- 蓝夜（蓝色）- 优秀
-- 红夜（红色）- 稀有
-- 紫夜（紫色）- 史诗
-- 金夜（金色）- 传说
-
-#### 员工属性
-- **编程**：影响代码开发能力
-- **设计**：影响界面设计能力
-- **沟通**：影响客户沟通能力
-- **效率**：影响项目进度推进速度
-
-#### 招募机制
-- 消耗 100 电力代币进行一次招募
-- 品质概率：
-  - 5 星（传说）：2%
-  - 4 星（史诗）：8%
-  - 3 星（稀有）：20%
-  - 2 星（优秀）：30%
-  - 1 星（普通）：40%
-
-### 3. 项目系统
-
-#### 项目类型
-- 企业官网（入门级）
-- 电商平台（进阶级）
-- 移动应用（高级）
-- AI 系统（专家级）
-- 云平台架构（传奇级）
-
-#### 难度等级
-- ★ 简单（1.0x 倍率）
-- ★★ 普通（1.5x 倍率）
-- ★★★ 困难（2.0x 倍率）
-- ★★★★ 专家（3.0x 倍率）
-- ★★★★★ 传奇（5.0x 倍率）
-
-#### 技能匹配机制
-
-项目完成需要员工技能与项目需求匹配：
-
-**匹配规则**：
-- 员工的编程、设计、沟通需达到项目要求的 60% 以上
-- 至少满足 2 项技能要求
-
-**效率影响**：
-- ✅ 技能匹配：100% 效率（正常速度）
-- ❌ 技能不匹配：10% 效率（极慢）
-
-**项目进度计算**：
-```
-进度增量 = (1 / 项目持续时间) × 效率系数
-```
-
-### 4. 挂机系统
-
-#### 在线挂机
-- 员工自动推进项目进度
-- 每秒计算一次进度
-- 技能匹配时效率最高
-
-#### 离线收益
-- 离线期间员工继续工作
-- 最多计算 12 小时的离线收益
-- 离线收益按 50% 效率计算
-
-#### 电力恢复
-- 每 60 秒自动恢复 1 点电力
-- 电力用于招募员工
-
-### 5. 剧情系统
-
-#### 剧情章节
-1. 第一章：新的开始（初始解锁）
-2. 第二章：第一个员工（招募 1 名员工后解锁）
-3. 第三章：首个项目（完成 1 个项目后解锁）
-4. 第四章：团队的成长（声誉 100 + 5 名员工后解锁）
-5. 第五章：挑战与机遇（声誉 500 + 5000 金币后解锁）
-
-### 6. 成就系统
-
-#### 部分成就示例
-- **初出茅庐**：招募第一个智能体员工（奖励：5 电力）
-- **团队初建**：拥有 5 名员工（奖励：500 金币 + 10 电力）
-- **声名鹊起**：声誉达到 100（奖励：1000 金币）
-- **财源广进**：累计获得 10000 金币（奖励：20 电力）
-- **项目达人**：完成 10 个项目（奖励：2000 金币 + 100 声誉）
-- **传奇招募**：招募到传说品质的员工（奖励：50 电力）
-
-## 📁 项目结构
-
-```
-my-tira-studio/
-├── config/                 # 配置文件
-│   ├── dev.ts             # 开发环境配置
-│   ├── index.ts           # 主配置文件
-│   └── prod.ts            # 生产环境配置
-├── src/
-│   ├── constants/         # 常量定义
-│   │   ├── achievements.ts  # 成就数据
-│   │   ├── config.ts        # 游戏配置
-│   │   ├── projects.ts      # 项目数据
-│   │   └── story.ts         # 剧情数据
-│   ├── pages/             # 页面组件
-│   │   ├── index/           # 首页
-│   │   ├── employee/        # 员工管理
-│   │   ├── project/         # 项目任务
-│   │   ├── shop/            # 商店招募
-│   │   ├── achievement/     # 成就系统
-│   │   └── story/           # 剧情模式
-│   ├── services/          # 服务层
-│   │   └── gameLoop.ts      # 游戏循环
-│   ├── stores/            # 状态管理
-│   │   ├── employee.ts      # 员工状态
-│   │   ├── game.ts          # 游戏状态
-│   │   ├── project.ts       # 项目状态
-│   │   └── resource.ts      # 资源状态
-│   ├── types/             # TypeScript 类型
-│   │   └── index.ts         # 类型定义
-│   ├── utils/             # 工具函数
-│   │   ├── format.ts        # 格式化
-│   │   ├── random.ts        # 随机
-│   │   └── time.ts          # 时间
-│   ├── app.config.ts      # 应用配置
-│   ├── app.scss           # 全局样式
-│   └── app.tsx            # 应用入口
-├── package.json           # 依赖配置
-└── tsconfig.json          # TypeScript 配置
-```
-
-## 🎮 新手引导
-
-### 首次进入游戏
-
-1. 游戏会自动弹出欢迎对话框，介绍游戏背景
-2. 系统赠送：
-   - 初始员工：白夜 tira（白色品质）
-   - 初始项目：简单项目 × 2
-
-### 游戏流程
-
-1. **接受项目**
-   - 点击"查看项目"进入项目页面
-   - 在"可接受项目"中选择项目并点击"接受项目"
-
-2. **分配员工**
-   - 点击"员工管理"进入员工页面
-   - 选择空闲员工，点击"分配工作"
-   - 选择已接受的项目
-
-3. **等待完成**
-   - 项目会自动推进进度（挂机）
-   - 技能匹配时进度较快
-   - 完成后自动获得奖励
-
-4. **招募员工**
-   - 点击"招募员工"进入商店
-   - 消耗 100 电力进行招募
-   - 电力随时间自动恢复
-
-5. **解锁剧情**
-   - 达成条件后自动解锁新剧情
-   - 在"剧情"页面查看已解锁剧情
-
-### 游戏技巧
-
-- ⭐ **优先匹配技能**：分配员工时确保技能匹配，效率提升 10 倍
-- ⚡ **合理分配电力**：前期电力紧缺，优先用于招募
-- 📈 **平衡发展**：招募不同技能的员工，应对各种项目
-- 🎯 **完成成就**：优先完成简单成就，获得额外资源
-- 💰 **离线收益**：下线前确保员工都在工作，最大化离线收益
-
-## 🔧 开发指南
-
-### 添加新项目类型
-
-编辑 `src/constants/projects.ts`：
-
-```typescript
-export const PROJECT_TEMPLATES = [
-  // ... 现有项目
-  {
-    name: '新项目名称',
-    client: '客户名称',
-    baseRequirements: { coding: 100, design: 50, communication: 30 },
-    baseDuration: 7200, // 秒
-    baseReward: { gold: 2000, reputation: 50, exp: 100 }
-  }
-]
-```
-
-### 添加新成就
-
-编辑 `src/constants/achievements.ts`：
-
-```typescript
-{
-  id: 'ach_new',
-  title: '成就名称',
-  description: '成就描述',
-  condition: {
-    type: 'gold', // gold | reputation | employees | projects | level
-    value: 5000
-  },
-  reward: {
-    gold: 1000,
-    power: 10,
-    reputation: 50
-  },
-  isUnlocked: false
-}
-```
-
-### 修改抽卡概率
-
-编辑 `src/constants/config.ts`：
-
-```typescript
-export const GAME_CONFIG: GameConfig = {
-  gachaCost: 100,
-  gachaRates: {
-    5: 0.02, // 5 星概率
-    4: 0.08, // 4 星概率
-    3: 0.20, // 3 星概率
-    2: 0.30, // 2 星概率
-    1: 0.40  // 1 星概率
-  },
-  // ... 其他配置
-}
-```
-
-## 📝 更新日志
-
-### v1.0.0 (2026-03-02)
-- ✨ 初始版本发布
-- 🎮 完整的游戏核心系统
-- 📖 5 章剧情内容
-- 🏆 6 个成就系统
-- 🎨 6 个精美页面
-- ⚡ 挂机玩法支持
-- 📱 跨平台支持
-
-## 🤝 贡献
-
-欢迎提交 Issue 和 Pull Request！
-
-## 📄 许可证
-
-MIT License
-
-## 👨‍💻 开发者
-
-关注白夜tira谢谢喵！
-
----
-
-**祝你游戏愉快！** 🎉

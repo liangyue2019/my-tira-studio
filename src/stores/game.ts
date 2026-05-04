@@ -1,12 +1,15 @@
 import { create } from 'zustand'
-import type { TimeSlot, GamePhase, StoryChapter, Dialog, DialogOption, SettlementResult, DaySettlementResult, GameEvent, ActionParams } from '../types'
+import type { TimeSlot, GamePhase, StoryChapter, Dialog, DialogOption, SettlementResult, DaySettlementResult, GameEvent, ActionParams, CharacterAffinity } from '../types'
 import { STORY_CHAPTERS } from '../constants/story'
 import { DIALOGS } from '../constants/dialogs'
+import { STORY_DIALOGS } from '../constants/storyDialogs'
 import { STORAGE_KEY, SAVE_INTERVAL } from '../constants/config'
 import { useResourceStore } from './resource'
 import { useEmployeeStore } from './employee'
 import { useProjectStore } from './project'
 import { executeAction, settleDay } from './settlement'
+
+const ALL_DIALOGS: Dialog[] = [...DIALOGS, ...STORY_DIALOGS]
 
 interface GameStore {
   day: number
@@ -23,6 +26,7 @@ interface GameStore {
   lastSaveTime: number
   isFirstLaunch: boolean
   showIntroStory: boolean
+  characterAffinity: CharacterAffinity
 
   initializeGame: () => void
   saveGame: () => void
@@ -37,7 +41,9 @@ interface GameStore {
   hideDialog: () => void
   selectDialogOption: (dialogId: string, option: DialogOption) => void
   checkDialogTriggers: () => void
+  checkStoryDialogTriggers: () => void
   updateStoryChapter: (id: string, updates: Partial<StoryChapter>) => void
+  updateAffinity: (character: string, amount: number) => void
   setCurrentEvent: (event: GameEvent | null) => void
   resetGame: () => void
 }
@@ -47,7 +53,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   timeSlot: 'morning',
   phase: 'action_select',
   storyChapters: STORY_CHAPTERS.map(s => ({ ...s })),
-  dialogs: DIALOGS.map(d => ({ ...d })),
+  dialogs: ALL_DIALOGS.map(d => ({ ...d })),
   currentDialogId: null,
   currentEvent: null,
   actionLog: [],
@@ -57,6 +63,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   lastSaveTime: 0,
   isFirstLaunch: true,
   showIntroStory: true,
+  characterAffinity: { tira: 0, rei: 0 },
 
   initializeGame: () => {
     const state = get()
@@ -88,7 +95,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       dayHistory: get().dayHistory,
       lastSaveTime: Date.now(),
       isFirstLaunch: get().isFirstLaunch,
-      showIntroStory: get().showIntroStory
+      showIntroStory: get().showIntroStory,
+      characterAffinity: get().characterAffinity
     }
 
     try {
@@ -118,12 +126,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
           timeSlot: gameState.timeSlot || 'morning',
           phase: gameState.phase || 'action_select',
           storyChapters: gameState.storyChapters || STORY_CHAPTERS.map(s => ({ ...s })),
-          dialogs: gameState.dialogs || DIALOGS.map(d => ({ ...d })),
+          dialogs: gameState.dialogs || ALL_DIALOGS.map(d => ({ ...d })),
           currentDialogId: gameState.currentDialogId || null,
           actionLog: gameState.actionLog || [],
           dayHistory: gameState.dayHistory || [],
           isFirstLaunch: gameState.isFirstLaunch !== undefined ? gameState.isFirstLaunch : false,
-          showIntroStory: gameState.showIntroStory !== undefined ? gameState.showIntroStory : false
+          showIntroStory: gameState.showIntroStory !== undefined ? gameState.showIntroStory : false,
+          characterAffinity: gameState.characterAffinity || { tira: 0, rei: 0 }
         })
       } else {
         useProjectStore.getState().generateInitialProjects(1)
@@ -133,9 +142,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
           timeSlot: 'morning',
           phase: 'action_select',
           storyChapters: STORY_CHAPTERS.map(s => ({ ...s })),
-          dialogs: DIALOGS.map(d => ({ ...d })),
+          dialogs: ALL_DIALOGS.map(d => ({ ...d })),
           showIntroStory: true,
-          isFirstLaunch: true
+          isFirstLaunch: true,
+          characterAffinity: { tira: 0, rei: 0 }
         })
       }
     } catch (e) {
@@ -171,7 +181,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
       set({ timeSlot: 'evening', phase: 'action_select' })
     } else {
       get().settleDayEnd()
+      return
     }
+
+    get().checkStoryDialogTriggers()
   },
 
   settleDayEnd: () => {
@@ -187,6 +200,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }))
 
     get().checkDialogTriggers()
+    get().checkStoryDialogTriggers()
     get().saveGame()
 
     return dayResult
@@ -221,6 +235,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
       if (option.reward.exp) resourceStore.addExp(option.reward.exp)
     }
 
+    if (option.affinityEffect) {
+      get().updateAffinity(option.affinityEffect.character, option.affinityEffect.amount)
+    }
+
+    if (option.specialAction) {
+      handleSpecialAction(option.specialAction)
+    }
+
     set((state) => ({
       dialogs: state.dialogs.map((d) =>
         d.id === dialogId ? { ...d, isTriggered: true, triggerTime: Date.now() } : d
@@ -228,9 +250,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
       currentDialogId: null
     }))
 
-    const dialog = get().dialogs.find(d => d.id === dialogId)
     if (option.nextDialogId) {
       set({ currentDialogId: option.nextDialogId })
+    } else {
+      setTimeout(() => {
+        get().checkDialogTriggers()
+        get().checkStoryDialogTriggers()
+      }, 300)
     }
   },
 
@@ -246,6 +272,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     for (const dialog of dialogs) {
       if (dialog.isTriggered) continue
+      if (dialog.trigger.type === 'dayTimeSlot') continue
 
       let shouldTrigger = false
       switch (dialog.trigger.type) {
@@ -276,11 +303,36 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
   },
 
+  checkStoryDialogTriggers: () => {
+    const { day, timeSlot, dialogs, currentDialogId } = get()
+
+    if (currentDialogId) return
+
+    for (const dialog of dialogs) {
+      if (dialog.isTriggered) continue
+      if (dialog.trigger.type !== 'dayTimeSlot') continue
+
+      if (dialog.trigger.dayValue === day && dialog.trigger.timeSlotValue === timeSlot) {
+        get().showDialog(dialog.id)
+        break
+      }
+    }
+  },
+
   updateStoryChapter: (id: string, updates: Partial<StoryChapter>) => {
     set((state) => ({
       storyChapters: state.storyChapters.map(chapter =>
         chapter.id === id ? { ...chapter, ...updates } : chapter
       )
+    }))
+  },
+
+  updateAffinity: (character: string, amount: number) => {
+    set((state) => ({
+      characterAffinity: {
+        ...state.characterAffinity,
+        [character]: (state.characterAffinity[character as keyof CharacterAffinity] || 0) + amount
+      }
     }))
   },
 
@@ -300,7 +352,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       timeSlot: 'morning',
       phase: 'action_select',
       storyChapters: STORY_CHAPTERS.map(s => ({ ...s })),
-      dialogs: DIALOGS.map(d => ({ ...d, isTriggered: false, triggerTime: undefined })),
+      dialogs: ALL_DIALOGS.map(d => ({ ...d, isTriggered: false, triggerTime: undefined })),
       currentDialogId: null,
       currentEvent: null,
       actionLog: [],
@@ -309,7 +361,39 @@ export const useGameStore = create<GameStore>((set, get) => ({
       lastDayResult: null,
       lastSaveTime: 0,
       isFirstLaunch: true,
-      showIntroStory: true
+      showIntroStory: true,
+      characterAffinity: { tira: 0, rei: 0 }
     })
   }
 }))
+
+function handleSpecialAction(action: string) {
+  const employeeStore = useEmployeeStore.getState()
+
+  switch (action) {
+    case 'recruit_lan':
+      employeeStore.addSpecialEmployee(
+        '蓝夜 tira',
+        1,
+        { coding: 8, design: 6, communication: 5, efficiency: 7 },
+        '蓝' as any
+      )
+      break
+    case 'recruit_rei_legendary':
+      employeeStore.addSpecialEmployee(
+        '零',
+        5,
+        { coding: 70, design: 55, communication: 40, efficiency: 65 },
+        '白' as any
+      )
+      break
+    case 'recruit_rei_partner':
+      employeeStore.addSpecialEmployee(
+        '零',
+        5,
+        { coding: 55, design: 45, communication: 60, efficiency: 50 },
+        '白' as any
+      )
+      break
+  }
+}

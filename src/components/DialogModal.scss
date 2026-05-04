@@ -21,6 +21,11 @@
   max-height: 80vh;
   overflow-y: auto;
   animation: glitchIn 0.2s ease-out;
+
+  &.story-dialog {
+    border-color: #58a6ff;
+    box-shadow: 0 0 20px rgba(88, 166, 255, 0.15);
+  }
 }
 
 @keyframes glitchIn {
@@ -117,6 +122,12 @@
   margin-bottom: 6px;
 }
 
+.dialog-option-effects {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 .dialog-option-reward {
   display: flex;
   gap: 10px;
@@ -130,4 +141,45 @@
   border: 1px solid rgba(126, 231, 135, 0.3);
   padding: 4px 10px;
   border-radius: 2px;
+}
+
+.affinity-item {
+  font-size: 20px;
+  padding: 4px 10px;
+  border-radius: 2px;
+
+  &.positive {
+    color: #f778ba;
+    background: rgba(247, 120, 186, 0.1);
+    border: 1px solid rgba(247, 120, 186, 0.3);
+  }
+
+  &.negative {
+    color: #f97583;
+    background: rgba(249, 117, 131, 0.1);
+    border: 1px solid rgba(249, 117, 131, 0.3);
+  }
+}
+
+.dialog-affinity-bar {
+  padding: 16px 20px;
+  border-top: 1px solid #30363d;
+  background: rgba(88, 166, 255, 0.05);
+}
+
+.affinity-label {
+  display: block;
+  font-size: 20px;
+  color: #58a6ff;
+  margin-bottom: 8px;
+}
+
+.affinity-chars {
+  display: flex;
+  gap: 20px;
+}
+
+.affinity-char {
+  font-size: 20px;
+  color: #f778ba;
 }

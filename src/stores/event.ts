@@ -4,6 +4,7 @@ import { GAME_EVENTS } from '../constants/events'
 import { useGameStore } from './game'
 import { useResourceStore } from './resource'
 import { useEmployeeStore } from './employee'
+import { useProjectStore } from './project'
 import { randomChance } from '../utils/random'
 
 interface EventState {

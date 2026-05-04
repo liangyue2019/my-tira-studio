@@ -174,17 +174,26 @@ export interface StoryChapter {
   isRead: boolean
 }
 
+export interface AffinityEffect {
+  character: string
+  amount: number
+}
+
 export interface DialogOption {
   id: string
   text: string
   reward?: Partial<Resources>
   nextDialogId?: string
   action?: string
+  affinityEffect?: AffinityEffect
+  specialAction?: string
 }
 
 export interface DialogTrigger {
-  type: 'reputation' | 'gold' | 'employees' | 'projects' | 'level' | 'day' | 'custom'
+  type: 'reputation' | 'gold' | 'employees' | 'projects' | 'level' | 'day' | 'custom' | 'dayTimeSlot'
   value: number
+  dayValue?: number
+  timeSlotValue?: TimeSlot
   customCheck?: () => boolean
 }
 
@@ -198,6 +207,11 @@ export interface Dialog {
   trigger: DialogTrigger
   isTriggered: boolean
   triggerTime?: number
+}
+
+export interface CharacterAffinity {
+  tira: number
+  rei: number
 }
 
 export interface GameState {
@@ -218,6 +232,7 @@ export interface GameState {
   lastSaveTime: number
   isFirstLaunch: boolean
   showIntroStory: boolean
+  characterAffinity: CharacterAffinity
 }
 
 export interface GachaResult {

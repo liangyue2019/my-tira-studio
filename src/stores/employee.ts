@@ -18,6 +18,7 @@ interface EmployeeState {
   getIdleEmployees: () => Employee[]
   getEmployeeById: (id: string) => Employee | undefined
   resetAllEmployeeStatus: () => void
+  addSpecialEmployee: (name: string, rarity: number, abilities: { coding: number; design: number; communication: number; efficiency: number }, color?: EmployeeColor) => Employee
 }
 
 export const useEmployeeStore = create<EmployeeState>((set, get) => ({
@@ -129,6 +130,22 @@ export const useEmployeeStore = create<EmployeeState>((set, get) => ({
         assignedProjectId: undefined
       }))
     }))
+  },
+
+  addSpecialEmployee: (name: string, rarity: number, abilities: { coding: number; design: number; communication: number; efficiency: number }, color?: EmployeeColor) => {
+    const employee: Employee = {
+      id: generateUUID(),
+      name,
+      color: color || '白' as EmployeeColor,
+      rarity,
+      abilities,
+      level: 1,
+      exp: 0,
+      status: 'idle' as EmployeeStatus,
+      createdAt: Date.now()
+    }
+    set((state) => ({ employees: [...state.employees, employee] }))
+    return employee
   }
 }))
 

@@ -36,6 +36,8 @@ function Index() {
   const lastSettlementResult = useGameStore((state) => state.lastSettlementResult)
   const lastDayResult = useGameStore((state) => state.lastDayResult)
   const actionLog = useGameStore((state) => state.actionLog)
+  const characterAffinity = useGameStore((state) => state.characterAffinity)
+  const checkStoryDialogTriggers = useGameStore((state) => state.checkStoryDialogTriggers)
 
   const canAfford = useResourceStore((state) => state.canAfford)
 
@@ -44,8 +46,10 @@ function Index() {
       showDialog('intro')
       setShowIntroStory(false)
       markFirstLaunchCompleted()
+    } else {
+      checkStoryDialogTriggers()
     }
-  }, [showIntroStory])
+  }, [showIntroStory, day, timeSlot])
 
   const handleSelectAction = (actionId: string, params?: ActionParams) => {
     selectAction(actionId, params)
@@ -53,7 +57,10 @@ function Index() {
 
   const handleContinueAfterSettlement = () => {
     advanceTimeSlot()
-    setPhase('action_select')
+    const { phase } = useGameStore.getState()
+    if (phase !== 'day_summary') {
+      setPhase('action_select')
+    }
   }
 
   const handleContinueAfterDaySummary = () => {
@@ -162,6 +169,16 @@ function Index() {
           <Text className='stat-value'>{projects.filter(p => !p.isCompleted && !p.isFailed).length}</Text>
         </View>
       </View>
+
+      {(characterAffinity.tira !== 0 || characterAffinity.rei !== 0) && (
+        <View className='affinity-panel'>
+          <Text className='affinity-panel-title'>💝 好感度</Text>
+          <View className='affinity-panel-chars'>
+            <Text className='affinity-panel-char'>白夜 tira: {characterAffinity.tira}</Text>
+            <Text className='affinity-panel-char'>零: {characterAffinity.rei}</Text>
+          </View>
+        </View>
+      )}
 
       {actionLog.length > 0 && (
         <View className='today-log'>
