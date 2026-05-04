@@ -27,6 +27,15 @@ interface GameStore {
   isFirstLaunch: boolean
   showIntroStory: boolean
   characterAffinity: CharacterAffinity
+  hasActedThisSlot: boolean
+  _actionSnapshot: {
+    resources: any
+    employees: any
+    projects: any
+    availableProjects: any
+    completedProjectCount: number
+    actionLog: SettlementResult[]
+  } | null
 
   initializeGame: () => void
   saveGame: () => void
@@ -45,6 +54,7 @@ interface GameStore {
   updateStoryChapter: (id: string, updates: Partial<StoryChapter>) => void
   updateAffinity: (character: string, amount: number) => void
   setCurrentEvent: (event: GameEvent | null) => void
+  undoLastAction: () => void
   resetGame: () => void
 }
 
@@ -64,6 +74,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   isFirstLaunch: true,
   showIntroStory: true,
   characterAffinity: { tira: 0, rei: 0 },
+  hasActedThisSlot: false,
+  _actionSnapshot: null,
 
   initializeGame: () => {
     const state = get()
@@ -157,14 +169,31 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   selectAction: (actionId: string, params?: ActionParams) => {
     const state = get()
-    if (state.phase !== 'action_select') return null
+    if (state.phase !== 'action_select' && state.phase !== 'project_assign') return null
+
+    if (actionId === 'work_project') {
+      const projectStore = useProjectStore.getState()
+      const activeProjects = projectStore.projects.filter((p: any) => !p.isCompleted && !p.isFailed)
+      if (activeProjects.length === 0) return null
+    }
+
+    const snapshot = {
+      resources: { ...useResourceStore.getState().resources },
+      employees: useEmployeeStore.getState().employees.map((e: any) => ({ ...e, abilities: { ...e.abilities } })),
+      projects: useProjectStore.getState().projects.map((p: any) => ({ ...p, requirements: { ...p.requirements }, reward: { ...p.reward }, assignedEmployees: [...p.assignedEmployees] })),
+      availableProjects: useProjectStore.getState().availableProjects.map((p: any) => ({ ...p, requirements: { ...p.requirements }, reward: { ...p.reward }, assignedEmployees: [...p.assignedEmployees] })),
+      completedProjectCount: useProjectStore.getState().completedProjectCount,
+      actionLog: [...state.actionLog]
+    }
 
     const result = executeAction(actionId, params)
 
     set((state) => ({
       actionLog: [...state.actionLog, result],
       lastSettlementResult: result,
-      phase: 'settlement'
+      phase: 'settlement',
+      hasActedThisSlot: true,
+      _actionSnapshot: snapshot
     }))
 
     get().checkDialogTriggers()
@@ -176,9 +205,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const { day, timeSlot } = get()
 
     if (timeSlot === 'morning') {
-      set({ timeSlot: 'afternoon', phase: 'action_select' })
+      set({ timeSlot: 'afternoon', phase: 'action_select', hasActedThisSlot: false, _actionSnapshot: null })
     } else if (timeSlot === 'afternoon') {
-      set({ timeSlot: 'evening', phase: 'action_select' })
+      set({ timeSlot: 'evening', phase: 'action_select', hasActedThisSlot: false, _actionSnapshot: null })
     } else {
       get().settleDayEnd()
       return
@@ -196,7 +225,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       phase: 'day_summary',
       dayHistory: [...state.dayHistory, dayResult],
       lastDayResult: dayResult,
-      actionLog: []
+      actionLog: [],
+      hasActedThisSlot: false
     }))
 
     get().checkDialogTriggers()
@@ -340,6 +370,31 @@ export const useGameStore = create<GameStore>((set, get) => ({
     set({ currentEvent: event, phase: event ? 'event' : 'action_select' })
   },
 
+  undoLastAction: () => {
+    const state = get()
+    const snapshot = state._actionSnapshot
+    if (!snapshot) {
+      set({ phase: 'action_select', hasActedThisSlot: false, lastSettlementResult: null })
+      return
+    }
+
+    useResourceStore.setState({ resources: snapshot.resources })
+    useEmployeeStore.setState({ employees: snapshot.employees })
+    useProjectStore.setState({
+      projects: snapshot.projects,
+      availableProjects: snapshot.availableProjects,
+      completedProjectCount: snapshot.completedProjectCount
+    })
+
+    set({
+      phase: 'action_select',
+      hasActedThisSlot: false,
+      lastSettlementResult: null,
+      actionLog: snapshot.actionLog,
+      _actionSnapshot: null
+    })
+  },
+
   resetGame: () => {
     localStorage.removeItem(STORAGE_KEY)
 
@@ -362,7 +417,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
       lastSaveTime: 0,
       isFirstLaunch: true,
       showIntroStory: true,
-      characterAffinity: { tira: 0, rei: 0 }
+      characterAffinity: { tira: 0, rei: 0 },
+      hasActedThisSlot: false,
+      _actionSnapshot: null
     })
   }
 }))

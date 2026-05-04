@@ -240,6 +240,77 @@
         font-size: 16px;
         color: #8b949e;
       }
+
+      .action-project-preview {
+        width: 100%;
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px solid #21262d;
+
+        .preview-project-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 3px 0;
+
+          .preview-project-name {
+            font-size: 18px;
+            color: #c9d1d9;
+            font-weight: 500;
+          }
+
+          .preview-project-info {
+            font-size: 16px;
+            color: #8b949e;
+          }
+        }
+      }
+    }
+  }
+}
+
+.acted-slot {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 4px;
+  padding: 24px;
+  text-align: center;
+
+  .acted-label {
+    font-size: 28px;
+    color: #7ee787;
+    font-weight: bold;
+    display: block;
+    margin-bottom: 12px;
+  }
+
+  .acted-summary {
+    margin-bottom: 16px;
+
+    .acted-action {
+      font-size: 24px;
+      color: #58a6ff;
+      font-weight: 500;
+    }
+  }
+
+  .next-slot-btn {
+    background: #0d1117;
+    border: 1px solid #58a6ff;
+    border-radius: 4px;
+    padding: 20px;
+    cursor: pointer;
+
+    &:active {
+      background: rgba(88, 166, 255, 0.1);
+      box-shadow: 0 0 12px rgba(88, 166, 255, 0.3);
+    }
+
+    .next-slot-text {
+      font-size: 26px;
+      color: #58a6ff;
+      font-weight: bold;
+      letter-spacing: 1px;
     }
   }
 }

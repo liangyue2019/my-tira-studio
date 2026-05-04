@@ -1,6 +1,6 @@
 export type TimeSlot = 'morning' | 'afternoon' | 'evening'
 
-export type GamePhase = 'action_select' | 'settlement' | 'day_summary' | 'event'
+export type GamePhase = 'action_select' | 'project_assign' | 'settlement' | 'day_summary' | 'event'
 
 export type EmployeeStatus = 'idle' | 'working' | 'training' | 'exploring' | 'resting' | 'socializing'
 

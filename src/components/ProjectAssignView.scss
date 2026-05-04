@@ -1,0 +1,311 @@
+.project-assign-view {
+  min-height: 100vh;
+  background: #0d1117;
+  color: #c9d1d9;
+  display: flex;
+  flex-direction: column;
+
+  .pa-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24px 32px;
+    border-bottom: 1px solid #21262d;
+
+    .pa-back-btn {
+      padding: 12px 20px;
+      border: 1px solid #30363d;
+      border-radius: 4px;
+      background: #161b22;
+      cursor: pointer;
+
+      &:active {
+        background: #0d1117;
+        border-color: #8b949e;
+      }
+
+      .pa-back-text {
+        font-size: 24px;
+        color: #8b949e;
+      }
+    }
+
+    .pa-title {
+      font-size: 30px;
+      font-weight: bold;
+      color: #e6edf3;
+    }
+
+    .pa-cost {
+      font-size: 24px;
+      color: #f0883e;
+    }
+  }
+
+  .pa-body {
+    flex: 1;
+    padding: 24px 32px;
+    overflow-y: auto;
+
+    .pa-section {
+      margin-bottom: 32px;
+
+      .pa-section-title {
+        font-size: 26px;
+        font-weight: bold;
+        color: #8b949e;
+        margin-bottom: 16px;
+        display: block;
+      }
+
+      .pa-empty {
+        text-align: center;
+        padding: 40px;
+        background: #161b22;
+        border-radius: 4px;
+
+        .pa-empty-text {
+          font-size: 24px;
+          color: #484f58;
+        }
+      }
+    }
+  }
+
+  .pa-project-card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-left: 4px solid;
+    border-radius: 4px;
+    padding: 20px;
+    margin-bottom: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:active {
+      background: #1c2128;
+    }
+
+    &.selected {
+      border-color: #58a6ff;
+      background: #161b22;
+      box-shadow: 0 0 12px rgba(88, 166, 255, 0.15);
+    }
+
+    .pa-project-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+
+      .pa-project-name {
+        font-size: 28px;
+        font-weight: bold;
+        color: #e6edf3;
+      }
+
+      .pa-selected-badge {
+        font-size: 22px;
+        color: #58a6ff;
+        background: rgba(88, 166, 255, 0.1);
+        padding: 4px 12px;
+        border-radius: 4px;
+      }
+    }
+
+    .pa-project-client {
+      font-size: 22px;
+      color: #8b949e;
+      margin-bottom: 12px;
+    }
+
+    .pa-project-progress {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+
+      .pa-progress-bar {
+        flex: 1;
+        height: 16px;
+        background: #21262d;
+        border-radius: 8px;
+        overflow: hidden;
+
+        .pa-progress-fill {
+          height: 100%;
+          background: linear-gradient(90deg, #1f6feb, #58a6ff);
+          border-radius: 8px;
+          box-shadow: 0 0 8px rgba(88, 166, 255, 0.4);
+          transition: width 0.3s;
+        }
+      }
+
+      .pa-progress-text {
+        font-size: 22px;
+        color: #58a6ff;
+        min-width: 80px;
+        text-align: right;
+      }
+    }
+
+    .pa-project-deadline {
+      font-size: 22px;
+      color: #f0883e;
+      margin-bottom: 12px;
+    }
+
+    .pa-assigned-list {
+      margin-top: 8px;
+      border-top: 1px solid #21262d;
+      padding-top: 8px;
+
+      .pa-assigned-emp {
+        display: flex;
+        align-items: center;
+        padding: 8px 0;
+        gap: 8px;
+
+        &.matched .pa-emp-match { color: #7ee787; }
+        &.mismatched .pa-emp-match { color: #f0883e; }
+
+        .pa-emp-name {
+          font-size: 22px;
+          color: #c9d1d9;
+          flex: 1;
+        }
+
+        .pa-emp-match {
+          font-size: 20px;
+        }
+
+        .pa-emp-remove {
+          font-size: 22px;
+          color: #f85149;
+          padding: 4px 8px;
+          cursor: pointer;
+
+          &:active {
+            background: rgba(248, 81, 73, 0.1);
+            border-radius: 4px;
+          }
+        }
+      }
+    }
+
+    .pa-estimate {
+      margin-top: 12px;
+      padding: 8px 12px;
+      background: rgba(88, 166, 255, 0.08);
+      border-radius: 4px;
+
+      .pa-estimate-text {
+        font-size: 22px;
+        color: #58a6ff;
+      }
+    }
+  }
+
+  .pa-employee-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+
+    .pa-emp-card {
+      width: calc(50% - 6px);
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 4px;
+      padding: 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &.idle {
+        border-color: #238636;
+
+        &:active {
+          background: rgba(35, 134, 54, 0.1);
+        }
+      }
+
+      &.assigned {
+        border-color: #1f6feb;
+        opacity: 0.8;
+      }
+
+      &.busy {
+        border-color: #30363d;
+        opacity: 0.4;
+      }
+
+      .pa-emp-card-name {
+        font-size: 24px;
+        font-weight: bold;
+        color: #e6edf3;
+        display: block;
+        margin-bottom: 4px;
+      }
+
+      .pa-emp-card-stars {
+        font-size: 20px;
+        color: #f0883e;
+        display: block;
+        margin-bottom: 8px;
+      }
+
+      .pa-emp-abilities {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-bottom: 8px;
+
+        .pa-ability {
+          font-size: 18px;
+          color: #8b949e;
+          background: #21262d;
+          padding: 2px 8px;
+          border-radius: 4px;
+        }
+      }
+
+      .pa-emp-status {
+        font-size: 20px;
+        font-weight: bold;
+
+        &.status-idle { color: #7ee787; }
+        &.status-assigned { color: #58a6ff; }
+        &.status-busy { color: #484f58; }
+      }
+    }
+  }
+
+  .pa-footer {
+    padding: 24px 32px;
+    border-top: 1px solid #21262d;
+
+    .pa-confirm-btn {
+      background: #238636;
+      border-radius: 4px;
+      padding: 24px;
+      text-align: center;
+      cursor: pointer;
+
+      &:active {
+        background: #2ea043;
+      }
+
+      &.disabled {
+        background: #21262d;
+        cursor: not-allowed;
+
+        .pa-confirm-text { color: #484f58; }
+      }
+
+      .pa-confirm-text {
+        font-size: 28px;
+        color: #fff;
+        font-weight: bold;
+      }
+    }
+  }
+}

@@ -80,10 +80,43 @@ async function executeAction(page: Page, actionId: string): Promise<boolean> {
     const s = (window as any).__stores
     if (!s) return false
     const g = s.game.getState()
-    if (g.phase !== 'action_select' || g.currentDialogId) return false
+    if (g.phase !== 'action_select' && g.phase !== 'project_assign') return false
+    if (g.currentDialogId) return false
     const result = g.selectAction(id)
     return !!result
   }, actionId)
+}
+
+async function executeWorkProject(page: Page): Promise<boolean> {
+  await page.evaluate(() => {
+    const s = (window as any).__stores
+    if (!s) return
+    const g = s.game.getState()
+    if (g.phase !== 'action_select' || g.currentDialogId) return
+    g.setPhase('project_assign')
+  })
+  await page.waitForTimeout(400)
+
+  return page.evaluate(() => {
+    const s = (window as any).__stores
+    if (!s) return false
+    const p = s.project.getState()
+    const e = s.employee.getState()
+    const g = s.game.getState()
+    if (g.phase !== 'project_assign') return false
+
+    const activeProject = p.projects.find((proj: any) => !proj.isCompleted && !proj.isFailed)
+    if (!activeProject) { g.setPhase('action_select'); return false }
+
+    const idleEmp = e.employees.find((emp: any) => emp.status === 'idle')
+    if (!idleEmp) { g.setPhase('action_select'); return false }
+
+    p.assignEmployee(activeProject.id, idleEmp.id)
+    e.updateEmployee(idleEmp.id, { status: 'working', assignedProjectId: activeProject.id })
+
+    const result = g.selectAction('work_project', { projectId: activeProject.id })
+    return !!result
+  })
 }
 
 async function advanceFromSettlement(page: Page): Promise<void> {
@@ -172,8 +205,14 @@ async function playFullGame(page: Page, choices: ChoiceMap, untilDay = 4): Promi
     if (state.phase === 'action_select') {
       const success = await executeAction(page, 'rest')
       if (!success) {
-        await executeAction(page, 'work_project')
+        await executeWorkProject(page)
       }
+      await page.waitForTimeout(400)
+      continue
+    }
+
+    if (state.phase === 'project_assign') {
+      await executeWorkProject(page)
       await page.waitForTimeout(400)
       continue
     }
@@ -289,5 +328,200 @@ test.describe('3-day story playthrough', () => {
 
     const affinityPanel = page.locator('.affinity-panel')
     await expect(affinityPanel).toBeVisible({ timeout: 5000 })
+  })
+
+  test('work_project enters project_assign phase when clicked', async ({ page }) => {
+    while (true) {
+      const state = await getGameState(page)
+      if (!state) { await page.waitForTimeout(300); continue }
+      if (!state.currentDialogId && state.phase === 'action_select') break
+      if (state.currentDialogId) { await selectDialogOption(page, 0); continue }
+      await page.waitForTimeout(200)
+    }
+
+    await page.evaluate(() => {
+      const s = (window as any).__stores
+      if (!s) return
+      s.game.getState().setPhase('project_assign')
+    })
+    await page.waitForTimeout(500)
+
+    const assignView = page.locator('.project-assign-view')
+    await expect(assignView).toBeVisible({ timeout: 5000 })
+
+    const projectCards = page.locator('.pa-project-card')
+    await expect(projectCards.first()).toBeVisible({ timeout: 5000 })
+
+    const backBtn = page.locator('.pa-back-btn')
+    await expect(backBtn).toBeVisible({ timeout: 3000 })
+  })
+
+  test('work_project action card shows project preview', async ({ page }) => {
+    while (true) {
+      const state = await getGameState(page)
+      if (!state) { await page.waitForTimeout(300); continue }
+      if (!state.currentDialogId && state.phase === 'action_select') break
+      if (state.currentDialogId) { await selectDialogOption(page, 0); continue }
+      await page.waitForTimeout(200)
+    }
+
+    const previewItems = page.locator('.action-project-preview .preview-project-item')
+    await expect(previewItems.first()).toBeVisible({ timeout: 5000 })
+
+    const projectName = await previewItems.first().locator('.preview-project-name').textContent()
+    expect(projectName).toBeTruthy()
+  })
+
+  test('work_project disabled when no active projects', async ({ page }) => {
+    while (true) {
+      const state = await getGameState(page)
+      if (!state) { await page.waitForTimeout(300); continue }
+      if (!state.currentDialogId && state.phase === 'action_select') break
+      if (state.currentDialogId) { await selectDialogOption(page, 0); continue }
+      await page.waitForTimeout(200)
+    }
+
+    await page.evaluate(() => {
+      const s = (window as any).__stores
+      if (!s) return
+      const projects = s.project.getState().projects
+      for (const p of projects) {
+        s.project.getState().failProject(p.id)
+      }
+      s.project.getState().clearCompletedAndFailed()
+    })
+    await page.waitForTimeout(500)
+
+    const workProjectCard = page.locator('.action-card').filter({ hasText: '推进项目' })
+    await expect(workProjectCard).toHaveClass(/disabled/, { timeout: 5000 })
+
+    const reason = workProjectCard.locator('.action-reason')
+    await expect(reason).toHaveText('没有进行中项目', { timeout: 3000 })
+  })
+
+  test('full work_project flow: assign view → assign employee → confirm → settlement', async ({ page }) => {
+    while (true) {
+      const state = await getGameState(page)
+      if (!state) { await page.waitForTimeout(300); continue }
+      if (!state.currentDialogId && state.phase === 'action_select') break
+      if (state.currentDialogId) { await selectDialogOption(page, 0); continue }
+      await page.waitForTimeout(200)
+    }
+
+    const beforePower = await page.evaluate(() => {
+      const s = (window as any).__stores
+      return s ? s.resource.getState().resources.power : 0
+    })
+
+    await page.evaluate(() => {
+      const s = (window as any).__stores
+      if (!s) return
+      s.game.getState().setPhase('project_assign')
+    })
+    await page.waitForTimeout(500)
+
+    const assignView = page.locator('.project-assign-view')
+    await expect(assignView).toBeVisible({ timeout: 5000 })
+
+    const projectCards = page.locator('.pa-project-card')
+    await expect(projectCards.first()).toBeVisible({ timeout: 5000 })
+    await projectCards.first().click()
+    await page.waitForTimeout(300)
+
+    const idleEmpCards = page.locator('.pa-emp-card.idle')
+    const idleCount = await idleEmpCards.count()
+    if (idleCount > 0) {
+      await idleEmpCards.first().click()
+      await page.waitForTimeout(300)
+    }
+
+    const confirmBtn = page.locator('.pa-confirm-btn:not(.disabled)')
+    await expect(confirmBtn).toBeVisible({ timeout: 3000 })
+    await confirmBtn.click()
+    await page.waitForTimeout(800)
+
+    const stateAfter = await getGameState(page)
+    expect(stateAfter?.phase).toBe('settlement')
+
+    if (beforePower >= 5) {
+      const afterPower = await page.evaluate(() => {
+        const s = (window as any).__stores
+        return s ? s.resource.getState().resources.power : 0
+      })
+      expect(afterPower).toBe(beforePower - 5)
+    }
+  })
+
+  test('back button undoes action and restores previous state', async ({ page }) => {
+    while (true) {
+      const state = await getGameState(page)
+      if (!state) { await page.waitForTimeout(300); continue }
+      if (!state.currentDialogId && state.phase === 'action_select') break
+      if (state.currentDialogId) { await selectDialogOption(page, 0); continue }
+      await page.waitForTimeout(200)
+    }
+
+    const before = await page.evaluate(() => {
+      const s = (window as any).__stores
+      if (!s) return null
+      const r = s.resource.getState().resources
+      const p = s.project.getState().projects.map((proj: any) => ({
+        id: proj.id, slotsSpent: proj.slotsSpent, isCompleted: proj.isCompleted
+      }))
+      const e = s.employee.getState().employees.map((emp: any) => ({
+        id: emp.id, status: emp.status
+      }))
+      return { gold: r.gold, power: r.power, projects: p, employees: e }
+    })
+    expect(before).not.toBeNull()
+
+    const result = await executeAction(page, 'rest')
+    expect(result).toBe(true)
+    await page.waitForTimeout(500)
+
+    const stateAfterAction = await getGameState(page)
+    expect(stateAfterAction?.phase).toBe('settlement')
+
+    const backBtn = page.locator('.settlement-footer .back-btn')
+    await expect(backBtn).toBeVisible({ timeout: 5000 })
+    await expect(backBtn).toHaveText(/返回/, { timeout: 3000 })
+
+    await page.evaluate(() => {
+      const s = (window as any).__stores
+      if (!s) return
+      s.game.getState().undoLastAction()
+    })
+    await page.waitForTimeout(500)
+
+    const afterUndo = await page.evaluate(() => {
+      const s = (window as any).__stores
+      if (!s) return null
+      const r = s.resource.getState().resources
+      const p = s.project.getState().projects.map((proj: any) => ({
+        id: proj.id, slotsSpent: proj.slotsSpent, isCompleted: proj.isCompleted
+      }))
+      const e = s.employee.getState().employees.map((emp: any) => ({
+        id: emp.id, status: emp.status
+      }))
+      const g = s.game.getState()
+      return { gold: r.gold, power: r.power, projects: p, employees: e, phase: g.phase, hasActedThisSlot: g.hasActedThisSlot }
+    })
+    expect(afterUndo).not.toBeNull()
+
+    expect(afterUndo!.phase).toBe('action_select')
+    expect(afterUndo!.hasActedThisSlot).toBe(false)
+    expect(afterUndo!.gold).toBe(before!.gold)
+    expect(afterUndo!.power).toBe(before!.power)
+
+    for (let i = 0; i < before!.projects.length; i++) {
+      expect(afterUndo!.projects[i].slotsSpent).toBe(before!.projects[i].slotsSpent)
+      expect(afterUndo!.projects[i].isCompleted).toBe(before!.projects[i].isCompleted)
+    }
+
+    const actionGrid = page.locator('.action-grid')
+    await expect(actionGrid).toBeVisible({ timeout: 5000 })
+
+    const actedSlot = page.locator('.acted-slot')
+    await expect(actedSlot).not.toBeVisible()
   })
 })

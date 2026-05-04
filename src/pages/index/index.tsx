@@ -5,23 +5,21 @@ import { useResourceStore } from '../../stores/resource'
 import { useEmployeeStore } from '../../stores/employee'
 import { useProjectStore } from '../../stores/project'
 import { useGameStore } from '../../stores/game'
-import { useEventStore } from '../../stores/event'
 import { formatNumber } from '../../utils/format'
 import { ACTIONS, getActionsForSlot } from '../../constants/actions'
-import { GAME_CONFIG } from '../../constants/config'
-import type { TimeSlot, ActionParams, GameEvent, SettlementResult, DaySettlementResult } from '../../types'
+import type { ActionParams } from '../../types'
 import { TIME_SLOT_LABELS, TIME_SLOT_ICONS } from '../../types'
 import DialogModal from '../../components/DialogModal'
 import EventModal from '../../components/EventModal'
 import SettlementView from '../../components/SettlementView'
 import DaySummaryView from '../../components/DaySummaryView'
+import ProjectAssignView from '../../components/ProjectAssignView'
 import './index.scss'
 
 function Index() {
   const resources = useResourceStore((state) => state.resources)
   const employees = useEmployeeStore((state) => state.employees)
   const projects = useProjectStore((state) => state.projects)
-  const availableProjects = useProjectStore((state) => state.availableProjects)
   const day = useGameStore((state) => state.day)
   const timeSlot = useGameStore((state) => state.timeSlot)
   const phase = useGameStore((state) => state.phase)
@@ -38,6 +36,7 @@ function Index() {
   const actionLog = useGameStore((state) => state.actionLog)
   const characterAffinity = useGameStore((state) => state.characterAffinity)
   const checkStoryDialogTriggers = useGameStore((state) => state.checkStoryDialogTriggers)
+  const hasActedThisSlot = useGameStore((state) => state.hasActedThisSlot)
 
   const canAfford = useResourceStore((state) => state.canAfford)
 
@@ -52,6 +51,10 @@ function Index() {
   }, [showIntroStory, day, timeSlot])
 
   const handleSelectAction = (actionId: string, params?: ActionParams) => {
+    if (actionId === 'work_project') {
+      setPhase('project_assign')
+      return
+    }
     selectAction(actionId, params)
   }
 
@@ -61,6 +64,10 @@ function Index() {
     if (phase !== 'day_summary') {
       setPhase('action_select')
     }
+  }
+
+  const handleBackFromSettlement = () => {
+    useGameStore.getState().undoLastAction()
   }
 
   const handleContinueAfterDaySummary = () => {
@@ -83,13 +90,17 @@ function Index() {
 
   const availableActions = getActionsForSlot(timeSlot)
 
+  const activeProjects = projects.filter(p => !p.isCompleted && !p.isFailed)
+
   const isActionAvailable = (actionId: string): boolean => {
     const action = ACTIONS.find(a => a.id === actionId)
     if (!action) return false
     if (!action.availableSlots.includes(timeSlot)) return false
     if (action.cost && !canAfford(action.cost)) return false
 
-    if (actionId === 'work_project' && projects.filter(p => !p.isCompleted && !p.isFailed).length === 0) return false
+    if (actionId === 'work_project') {
+      if (activeProjects.length === 0) return false
+    }
 
     return true
   }
@@ -99,7 +110,9 @@ function Index() {
     if (!action) return ''
     if (!action.availableSlots.includes(timeSlot)) return `${TIME_SLOT_LABELS[timeSlot]}不可用`
     if (action.cost && !canAfford(action.cost)) return '资源不足'
-    if (actionId === 'work_project' && projects.filter(p => !p.isCompleted && !p.isFailed).length === 0) return '没有进行中项目'
+    if (actionId === 'work_project') {
+      if (activeProjects.length === 0) return '没有进行中项目'
+    }
     return ''
   }
 
@@ -111,10 +124,24 @@ function Index() {
     )
   }
 
+  if (phase === 'project_assign') {
+    const handleConfirmProject = (projectId: string) => {
+      selectAction('work_project', { projectId })
+    }
+    const handleBackFromAssign = () => {
+      setPhase('action_select')
+    }
+    return (
+      <View className='page-index'>
+        <ProjectAssignView onConfirm={handleConfirmProject} onBack={handleBackFromAssign} />
+      </View>
+    )
+  }
+
   if (phase === 'settlement' && lastSettlementResult) {
     return (
       <View className='page-index'>
-        <SettlementView result={lastSettlementResult} onContinue={handleContinueAfterSettlement} />
+        <SettlementView result={lastSettlementResult} onContinue={handleContinueAfterSettlement} onBack={handleBackFromSettlement} />
       </View>
     )
   }
@@ -193,38 +220,66 @@ function Index() {
       )}
 
       <View className='action-section'>
-        <Text className='section-title'>选择本时段的行动</Text>
-        <View className='action-grid'>
-          {availableActions.map((action) => {
-            const available = isActionAvailable(action.id)
-            const reason = getActionDisabledReason(action.id)
-            return (
-              <View
-                key={action.id}
-                className={`action-card ${available ? '' : 'disabled'}`}
-                onClick={() => available && handleSelectAction(action.id)}
-              >
-                <Text className='action-icon'>{action.icon}</Text>
-                <Text className='action-name'>{action.name}</Text>
-                {action.cost && (action.cost.gold || action.cost.power) && (
-                  <Text className='action-cost'>
-                    {action.cost.gold && `💰${action.cost.gold} `}
-                    {action.cost.power && `⚡${action.cost.power}`}
-                  </Text>
-                )}
-                {!available && reason && (
-                  <Text className='action-reason'>{reason}</Text>
-                )}
+        {hasActedThisSlot ? (
+          <View className='acted-slot'>
+            <Text className='acted-label'>✅ 本时段已行动</Text>
+            {lastSettlementResult && (
+              <View className='acted-summary'>
+                <Text className='acted-action'>{lastSettlementResult.actionName}</Text>
               </View>
-            )
-          })}
-        </View>
+            )}
+            <View className='next-slot-btn' onClick={handleContinueAfterSettlement}>
+              <Text className='next-slot-text'>进入下一时段 →</Text>
+            </View>
+          </View>
+        ) : (
+          <>
+            <Text className='section-title'>选择本时段的行动</Text>
+            <View className='action-grid'>
+              {availableActions.map((action) => {
+                const available = isActionAvailable(action.id)
+                const reason = getActionDisabledReason(action.id)
+                return (
+                  <View
+                    key={action.id}
+                    className={`action-card ${available ? '' : 'disabled'}`}
+                    onClick={() => available && handleSelectAction(action.id)}
+                  >
+                    <Text className='action-icon'>{action.icon}</Text>
+                    <Text className='action-name'>{action.name}</Text>
+                    {action.cost && (action.cost.gold || action.cost.power) && (
+                      <Text className='action-cost'>
+                        {action.cost.gold && `💰${action.cost.gold} `}
+                        {action.cost.power && `⚡${action.cost.power}`}
+                      </Text>
+                    )}
+                    {!available && reason && (
+                      <Text className='action-reason'>{reason}</Text>
+                    )}
+                    {action.id === 'work_project' && activeProjects.length > 0 && (
+                      <View className='action-project-preview'>
+                        {activeProjects.map(p => (
+                          <View key={p.id} className='preview-project-item'>
+                            <Text className='preview-project-name'>{p.name}</Text>
+                            <Text className='preview-project-info'>
+                              {p.slotsSpent}/{p.totalSlots} · {p.assignedEmployees.length}人
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+                )
+              })}
+            </View>
+          </>
+        )}
       </View>
 
-      {projects.filter(p => !p.isCompleted && !p.isFailed).length > 0 && (
+      {activeProjects.length > 0 && (
         <View className='projects-preview'>
           <Text className='section-title'>进行中项目</Text>
-          {projects.filter(p => !p.isCompleted && !p.isFailed).map(project => (
+          {activeProjects.map(project => (
             <View key={project.id} className='project-mini-card'>
               <Text className='project-mini-name'>{project.name}</Text>
               <View className='project-mini-progress'>

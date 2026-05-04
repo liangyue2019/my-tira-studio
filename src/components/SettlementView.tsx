@@ -6,9 +6,10 @@ import './SettlementView.scss'
 interface Props {
   result: SettlementResult
   onContinue: () => void
+  onBack: () => void
 }
 
-function SettlementView({ result, onContinue }: Props) {
+function SettlementView({ result, onContinue, onBack }: Props) {
   return (
     <View className='settlement-view'>
       <View className='settlement-header'>
@@ -82,6 +83,9 @@ function SettlementView({ result, onContinue }: Props) {
       </View>
 
       <View className='settlement-footer'>
+        <View className='back-btn' onClick={onBack}>
+          <Text className='back-text'>← 返回</Text>
+        </View>
         <View className='continue-btn' onClick={onContinue}>
           <Text className='continue-text'>继续 →</Text>
         </View>
